@@ -378,8 +378,8 @@ class Command(BaseCommand):
             self.stdout.write(f"    + Profil: {user.full_name}")
 
     def _create_memberships(self):
-        self.stdout.write("  → Création des demandes d'adhésion...")
-        from apps.memberships.models import MembershipApplication
+        self.stdout.write("  → Création des candidatures...")
+        from apps.memberships.models import Candidature
 
         bureau_user = self.users["president"]
         now = timezone.now()
@@ -387,6 +387,8 @@ class Command(BaseCommand):
         apps_data = [
             dict(
                 user_key="emma",
+                country="Sénégal",
+                profession="Data Analyst",
                 motivation="Passionnée de data science depuis 3 ans, j'ai suivi plusieurs formations en ligne (Coursera, DataCamp). "
                            "Je souhaite rejoindre DAH pour bénéficier d'un mentorat structuré, contribuer à des projets communautaires "
                            "et accélérer ma transition professionnelle vers un poste de Data Analyst.",
@@ -394,10 +396,12 @@ class Command(BaseCommand):
             ),
             dict(
                 user_key="felix",
+                country="Côte d'Ivoire",
+                profession="Data Engineer Junior",
                 motivation="Développeur web de formation reconverti en data engineer junior. "
                            "Je maîtrise SQL, Python et Pandas. Rejoindre DAH me permettrait de collaborer avec des experts, "
                            "de monter en compétence sur les outils cloud et de contribuer à l'écosystème data africain.",
-                status="review",
+                status="accepted",
             ),
         ]
 
@@ -405,14 +409,20 @@ class Command(BaseCommand):
             user = self.users.get(ad["user_key"])
             if not user:
                 continue
-            app, created = MembershipApplication.objects.get_or_create(
-                applicant=user,
+            is_reviewed = ad["status"] != "pending"
+            candidature, created = Candidature.objects.get_or_create(
+                email=user.email,
                 defaults={
-                    "motivation_letter": ad["motivation"],
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "country": ad["country"],
+                    "profession": ad["profession"],
+                    "motivation": ad["motivation"],
                     "status": ad["status"],
-                    "reviewed_by": bureau_user if ad["status"] == "review" else None,
-                    "reviewed_at": now if ad["status"] == "review" else None,
+                    "user": user,
+                    "reviewed_by": bureau_user if is_reviewed else None,
+                    "reviewed_at": now if is_reviewed else None,
                 },
             )
             if created:
-                self.stdout.write(f"    + Demande: {user.full_name} ({ad['status']})")
+                self.stdout.write(f"    + Candidature: {user.full_name} ({ad['status']})")
