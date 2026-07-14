@@ -59,3 +59,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Prototype legacy (référence métier locale uniquement, non versionné)
+backend_legacy/
+front_legacy/

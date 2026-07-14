@@ -1,0 +1,15 @@
+FROM node:20-alpine
+WORKDIR /app
+ENV LIBC=musl
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
+# Mettre à jour npm pour éviter le bug "Exit handler never called!" de v10
+RUN npm install -g npm@latest
+
+# Installer les dépendances au build (pas au démarrage)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+EXPOSE 3000
+CMD ["npm", "run", "dev"]

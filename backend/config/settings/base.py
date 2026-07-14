@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -53,6 +54,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # ─── Middleware ───────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -84,15 +86,18 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # ─── Base de données ─────────────────────────────────────────────
+# DATABASE_URL est fourni automatiquement par Render (Postgres lié au service).
+# En local (docker-compose), on retombe sur les variables DB_* individuelles.
+_default_db_url = "postgres://{}:{}@{}:{}/{}".format(
+    config("DB_USER", default="dah"),
+    config("DB_PASSWORD", default="dah_password"),
+    config("DB_HOST", default="localhost"),
+    config("DB_PORT", default="5432"),
+    config("DB_NAME", default="dah_db"),
+)
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME", default="dah_db"),
-        "USER": config("DB_USER", default="dah"),
-        "PASSWORD": config("DB_PASSWORD", default="dah_password"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="5432"),
-    }
+    "default": dj_database_url.config(default=_default_db_url, conn_max_age=600)
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

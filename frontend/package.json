@@ -1,0 +1,35 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "postinstall": "node -e \"const fs=require('fs'),p=require('path');const arch=process.arch;const libc=process.env.LIBC||'gnu';const pkg='swc-linux-'+arch+'-'+libc;const fname='next-'+pkg+'.node';const src=p.resolve('node_modules/@next/'+pkg,fname);const dst=p.resolve('node_modules/next/next-swc-fallback/@next/'+pkg,fname);if(fs.existsSync(src)&&!fs.existsSync(dst)){fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);console.log('[postinstall] SWC binary copied: '+pkg)}\""
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@tanstack/react-query": "^5.101.2",
+    "axios": "^1.18.1",
+    "framer-motion": "^12.42.0",
+    "jose": "^6.2.3",
+    "lucide-react": "^1.22.0",
+    "next": "16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.80.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "^16.2.9"
+  }
+}

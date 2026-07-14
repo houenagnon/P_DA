@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* ── Palette Data Afrique Hub ── */
+:root {
+  --brand-navy: #04041A;
+  --brand-blue: #0972E1;
+  --brand-orange: #FF8A00;
+
+  --background: #ffffff;
+  --foreground: #04041A;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #04041A;
+  --foreground: #f4f4f5;
+  --muted: #18182a;
+  --muted-foreground: #a1a1aa;
+  --border: #27273a;
+}
+
+@theme inline {
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-orange: var(--brand-orange);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --font-sans: "Poppins", system-ui, sans-serif;
+  --radius: var(--radius);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

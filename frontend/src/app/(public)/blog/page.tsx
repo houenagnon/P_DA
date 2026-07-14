@@ -1,0 +1,238 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { BookOpen, Search, Calendar, Tag, User } from "lucide-react";
+import { blogService } from "@/services/blog.service";
+import { formatDate } from "@/lib/utils";
+import type { ArticleListItem } from "@/types/blog.types";
+import type { Metadata } from "next";
+
+export default function BlogPage() {
+  const [search, setSearch] = useState("");
+  const [activeTag, setActiveTag] = useState("");
+
+  const { data: articles = [], isLoading } = useQuery({
+    queryKey: ["blog"],
+    queryFn: () => blogService.list().then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const allTags = Array.from(new Set(articles.flatMap((a) => a.tags_list)));
+
+  const filtered = articles.filter((a) => {
+    const q = search.toLowerCase();
+    const matchSearch =
+      !search ||
+      a.title.toLowerCase().includes(q) ||
+      a.excerpt.toLowerCase().includes(q) ||
+      (a.author_name ?? "").toLowerCase().includes(q);
+    const matchTag = !activeTag || a.tags_list.includes(activeTag);
+    return matchSearch && matchTag;
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-brand-navy via-[#0a0a2e] to-[#0c1a4a] text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center">
+          <div className="inline-flex items-center gap-2 bg-brand-blue/20 border border-brand-blue/30 rounded-full px-4 py-1.5 text-sm text-blue-300 mb-6">
+            <BookOpen size={14} /> Blog
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+            Articles & <span className="text-brand-orange">Ressources</span>
+          </h1>
+          <p className="text-white/60 text-lg max-w-xl mx-auto">
+            Analyses, tutoriels et réflexions par les membres de Data Afrique Hub.
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+        {/* Barre de recherche */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div className="relative flex-1 max-w-md">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un article…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 bg-white"
+            />
+          </div>
+          {allTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <button
+                onClick={() => setActiveTag("")}
+                className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
+                  !activeTag ? "bg-brand-blue text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                Tous
+              </button>
+              {allTags.slice(0, 6).map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setActiveTag(activeTag === tag ? "" : tag)}
+                  className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
+                    activeTag === tag ? "bg-brand-blue text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Articles */}
+        {isLoading ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+                <div className="h-44 bg-gray-200" />
+                <div className="p-5 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded w-full" />
+                  <div className="h-3 bg-gray-100 rounded w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">
+            <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
+            <p className="text-gray-500">
+              {search || activeTag ? "Aucun article trouvé" : "Aucun article publié pour l'instant"}
+            </p>
+            {(search || activeTag) && (
+              <button
+                onClick={() => { setSearch(""); setActiveTag(""); }}
+                className="mt-3 text-sm text-brand-blue hover:underline"
+              >
+                Réinitialiser les filtres
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Article vedette (premier) */}
+            {!search && !activeTag && filtered.length > 0 && (
+              <FeaturedArticle article={filtered[0]} />
+            )}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+              {(search || activeTag ? filtered : filtered.slice(1)).map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FeaturedArticle({ article }: { article: ArticleListItem }) {
+  return (
+    <Link
+      href={`/blog/${article.slug}`}
+      className="group block bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-brand-blue/20 transition-all duration-200"
+    >
+      <div className="sm:flex">
+        <div className="sm:w-2/5 bg-gray-100 h-56 sm:h-auto relative overflow-hidden">
+          {article.cover_image ? (
+            <img
+              src={article.cover_image}
+              alt={article.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-brand-navy to-brand-blue flex items-center justify-center">
+              <BookOpen size={48} className="text-white/20" />
+            </div>
+          )}
+          <div className="absolute top-3 left-3 bg-brand-orange text-white text-xs font-bold px-2 py-1 rounded-full">
+            À la une
+          </div>
+        </div>
+        <div className="sm:w-3/5 p-6 sm:p-8 flex flex-col justify-center">
+          {article.category && (
+            <span className="text-xs font-semibold text-brand-blue uppercase tracking-wide mb-2">
+              {article.category.name}
+            </span>
+          )}
+          <h2 className="text-xl sm:text-2xl font-bold text-brand-navy group-hover:text-brand-blue transition-colors leading-snug mb-3">
+            {article.title}
+          </h2>
+          {article.excerpt && (
+            <p className="text-gray-500 text-sm leading-relaxed line-clamp-3 mb-4">{article.excerpt}</p>
+          )}
+          <ArticleMeta article={article} />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function ArticleCard({ article }: { article: ArticleListItem }) {
+  return (
+    <Link
+      href={`/blog/${article.slug}`}
+      className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:border-brand-blue/20 transition-all duration-200 flex flex-col"
+    >
+      <div className="h-44 bg-gray-100 overflow-hidden relative">
+        {article.cover_image ? (
+          <img
+            src={article.cover_image}
+            alt={article.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-brand-navy to-brand-blue flex items-center justify-center">
+            <BookOpen size={36} className="text-white/20" />
+          </div>
+        )}
+        {article.category && (
+          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-brand-blue text-xs font-semibold px-2 py-1 rounded-full">
+            {article.category.name}
+          </div>
+        )}
+      </div>
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className="font-bold text-brand-navy group-hover:text-brand-blue transition-colors leading-snug line-clamp-2 mb-2">
+          {article.title}
+        </h3>
+        {article.excerpt && (
+          <p className="text-gray-500 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
+            {article.excerpt}
+          </p>
+        )}
+        <ArticleMeta article={article} />
+      </div>
+    </Link>
+  );
+}
+
+function ArticleMeta({ article }: { article: ArticleListItem }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+      {article.author_name && (
+        <span className="flex items-center gap-1">
+          <User size={11} /> {article.author_name}
+        </span>
+      )}
+      {article.published_at && (
+        <span className="flex items-center gap-1">
+          <Calendar size={11} /> {formatDate(article.published_at)}
+        </span>
+      )}
+      {article.tags_list.slice(0, 2).map((tag) => (
+        <span key={tag} className="flex items-center gap-1 text-brand-blue">
+          <Tag size={10} /> {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
