@@ -2,12 +2,13 @@
 
 import { use } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { membershipsService } from "@/services/memberships.service";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { isAdmin } from "@/types/auth.types";
-import { ArrowLeft, Check, X, ExternalLink } from "lucide-react";
+import { ArrowLeft, Check, X, ExternalLink, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { CandidatureStatus } from "@/types/memberships.types";
 import { useState } from "react";
@@ -25,6 +26,7 @@ export default function CandidatureDetailPage({
 }) {
   const { id } = use(params);
   const qc = useQueryClient();
+  const router = useRouter();
   const { data: user } = useCurrentUser();
   const canManage = user && (isAdmin(user.role) || user.role === "president");
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -44,6 +46,14 @@ export default function CandidatureDetailPage({
       rejection_reason?: string;
     }) => membershipsService.reviewCandidature(Number(id), { action, rejection_reason }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidature", id] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => membershipsService.deleteCandidature(Number(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["candidatures"] });
+      router.push("/memberships");
+    },
   });
 
   if (isLoading) {
@@ -71,14 +81,29 @@ export default function CandidatureDetailPage({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <Link
-          href="/memberships"
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-brand-blue mb-2 transition-colors"
-        >
-          <ArrowLeft size={14} /> Retour aux candidatures
-        </Link>
-        <h1 className="text-2xl font-bold text-brand-navy">Dossier de candidature</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Link
+            href="/memberships"
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-brand-blue mb-2 transition-colors"
+          >
+            <ArrowLeft size={14} /> Retour aux candidatures
+          </Link>
+          <h1 className="text-2xl font-bold text-brand-navy">Dossier de candidature</h1>
+        </div>
+        {canManage && (
+          <button
+            onClick={() => {
+              if (confirm(`Supprimer définitivement la candidature de ${candidature.first_name} ${candidature.last_name} ?`)) {
+                deleteMutation.mutate();
+              }
+            }}
+            title="Supprimer la candidature"
+            className="p-2 text-gray-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 shrink-0"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
 
       {/* En-tête */}
@@ -146,24 +171,28 @@ export default function CandidatureDetailPage({
       )}
 
       {/* Actions */}
-      {canManage && candidature.status === "pending" && (
+      {canManage && (
         <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
           <h3 className="font-semibold text-brand-navy text-sm">Décision</h3>
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => reviewMutation.mutate({ action: "accept" })}
-              disabled={reviewMutation.isPending}
-              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              <Check size={15} /> Accepter la candidature
-            </button>
-            <button
-              onClick={() => setShowRejectForm(!showRejectForm)}
-              disabled={reviewMutation.isPending}
-              className="flex items-center gap-2 px-5 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition-colors"
-            >
-              <X size={15} /> Rejeter
-            </button>
+            {candidature.status !== "accepted" && (
+              <button
+                onClick={() => reviewMutation.mutate({ action: "accept" })}
+                disabled={reviewMutation.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                <Check size={15} /> {candidature.status === "rejected" ? "Revenir sur le refus (accepter)" : "Accepter la candidature"}
+              </button>
+            )}
+            {candidature.status !== "rejected" && (
+              <button
+                onClick={() => setShowRejectForm(!showRejectForm)}
+                disabled={reviewMutation.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition-colors"
+              >
+                <X size={15} /> {candidature.status === "accepted" ? "Revenir sur l'acceptation (rejeter)" : "Rejeter"}
+              </button>
+            )}
           </div>
           {showRejectForm && (
             <div className="space-y-3 pt-2">

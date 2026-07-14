@@ -18,6 +18,19 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "email", "role", "email_verified", "created_at"]
 
 
+class UserAdminSerializer(serializers.ModelSerializer):
+    """Édition d'un utilisateur par un administrateur — expose role/is_active/email."""
+    full_name = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "email", "first_name", "last_name", "full_name",
+            "phone", "role", "is_active", "email_verified", "created_at",
+        ]
+        read_only_fields = ["id", "email_verified", "created_at"]
+
+
 class DAHTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):

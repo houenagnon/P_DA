@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { isAdmin } from "@/types/auth.types";
 import {
   Check, X, Clock, FileText, ChevronDown, ChevronUp,
-  ExternalLink, Search, CheckCircle2, XCircle, Users,
+  ExternalLink, Search, CheckCircle2, XCircle, Users, Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import type { CandidatureList, CandidatureStatus } from "@/types/memberships.types";
@@ -48,6 +48,11 @@ export default function CandidaturesPage() {
       action: "accept" | "reject";
       rejection_reason?: string;
     }) => membershipsService.reviewCandidature(id, { action, rejection_reason }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["candidatures"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => membershipsService.deleteCandidature(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidatures"] }),
   });
 
@@ -187,6 +192,11 @@ export default function CandidaturesPage() {
               onReject={(reason) =>
                 reviewMutation.mutate({ id: c.id, action: "reject", rejection_reason: reason })
               }
+              onDelete={() => {
+                if (confirm(`Supprimer définitivement la candidature de ${c.first_name} ${c.last_name} ?`)) {
+                  deleteMutation.mutate(c.id);
+                }
+              }}
               isPending={reviewMutation.isPending}
             />
           ))}
@@ -207,6 +217,7 @@ function CandidatureCard({
   onToggle,
   onAccept,
   onReject,
+  onDelete,
   isPending,
 }: {
   candidature: CandidatureList;
@@ -214,6 +225,7 @@ function CandidatureCard({
   onToggle: () => void;
   onAccept: () => void;
   onReject: (reason: string) => void;
+  onDelete: () => void;
   isPending: boolean;
 }) {
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -250,6 +262,13 @@ function CandidatureCard({
         >
           <ExternalLink size={14} />
         </Link>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          title="Supprimer la candidature"
+          className="p-1.5 text-gray-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+        >
+          <Trash2 size={14} />
+        </button>
         {expanded ? (
           <ChevronUp size={16} className="text-gray-400 shrink-0" />
         ) : (
@@ -257,23 +276,35 @@ function CandidatureCard({
         )}
       </div>
 
-      {expanded && c.status === "pending" && (
+      {expanded && (
         <div className="px-4 pb-4 border-t border-gray-100">
+          {c.reviewed_by_name && (
+            <p className="text-xs text-gray-400 pt-3">
+              {c.status === "accepted" ? "Acceptée" : "Rejetée"} par{" "}
+              <span className="text-gray-600">{c.reviewed_by_name}</span>
+              {c.reviewed_at && ` le ${formatDate(c.reviewed_at)}`}
+            </p>
+          )}
+
           <div className="flex flex-wrap gap-2 mt-4">
-            <button
-              onClick={onAccept}
-              disabled={isPending}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm text-white bg-green-600 rounded-xl hover:bg-green-700 font-medium disabled:opacity-50 transition-colors"
-            >
-              <Check size={14} /> Accepter la candidature
-            </button>
-            <button
-              onClick={() => setShowRejectForm(!showRejectForm)}
-              disabled={isPending}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm text-white bg-red-500 rounded-xl hover:bg-red-600 font-medium disabled:opacity-50 transition-colors"
-            >
-              <X size={14} /> Rejeter
-            </button>
+            {c.status !== "accepted" && (
+              <button
+                onClick={onAccept}
+                disabled={isPending}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm text-white bg-green-600 rounded-xl hover:bg-green-700 font-medium disabled:opacity-50 transition-colors"
+              >
+                <Check size={14} /> {c.status === "rejected" ? "Revenir sur le refus (accepter)" : "Accepter la candidature"}
+              </button>
+            )}
+            {c.status !== "rejected" && (
+              <button
+                onClick={() => setShowRejectForm(!showRejectForm)}
+                disabled={isPending}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm text-white bg-red-500 rounded-xl hover:bg-red-600 font-medium disabled:opacity-50 transition-colors"
+              >
+                <X size={14} /> {c.status === "accepted" ? "Revenir sur l'acceptation (rejeter)" : "Rejeter"}
+              </button>
+            )}
           </div>
 
           {showRejectForm && (
@@ -302,16 +333,6 @@ function CandidatureCard({
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {expanded && c.status !== "pending" && c.reviewed_by_name && (
-        <div className="px-4 pb-3 border-t border-gray-100 pt-3">
-          <p className="text-xs text-gray-400">
-            {c.status === "accepted" ? "Acceptée" : "Rejetée"} par{" "}
-            <span className="text-gray-600">{c.reviewed_by_name}</span>
-            {c.reviewed_at && ` le ${formatDate(c.reviewed_at)}`}
-          </p>
         </div>
       )}
     </div>

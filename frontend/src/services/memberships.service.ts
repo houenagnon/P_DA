@@ -18,4 +18,6 @@ export const membershipsService = {
 
   reviewCandidature: (id: number, data: ReviewPayload) =>
     api.post<CandidatureDetail>(`/memberships/candidatures/${id}/review/`, data),
+
+  deleteCandidature: (id: number) => api.delete(`/memberships/candidatures/${id}/`),
 };

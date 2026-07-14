@@ -46,7 +46,7 @@ class CandidatureListView(generics.ListAPIView):
         return Candidature.objects.select_related("reviewed_by").order_by("-created_at")
 
 
-class CandidatureDetailView(generics.RetrieveAPIView):
+class CandidatureDetailView(generics.RetrieveDestroyAPIView):
     serializer_class = CandidatureDetailSerializer
     permission_classes = [IsAdminOrPresident]
     queryset = Candidature.objects.select_related("reviewed_by")

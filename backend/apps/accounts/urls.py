@@ -1,10 +1,14 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from .views import (
     DAHTokenObtainPairView, DAHTokenRefreshView, LogoutView, MeView,
     PasswordChangeView, PasswordResetRequestView, PasswordResetConfirmView,
-    EmailVerifyView, DeleteAccountView,
+    EmailVerifyView, DeleteAccountView, UserAdminViewSet,
 )
+
+router = DefaultRouter()
+router.register("users", UserAdminViewSet, basename="user-admin")
 
 urlpatterns = [
     path("login/", DAHTokenObtainPairView.as_view(), name="auth-login"),
@@ -16,5 +20,6 @@ urlpatterns = [
     path("password/reset/confirm/", PasswordResetConfirmView.as_view(), name="auth-password-reset-confirm"),
     path("email/verify/", EmailVerifyView.as_view(), name="auth-email-verify"),
     path("account/delete/", DeleteAccountView.as_view(), name="auth-account-delete"),
+    path("", include(router.urls)),
 ]
 

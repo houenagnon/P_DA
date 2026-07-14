@@ -26,11 +26,14 @@ export interface SocialLink {
 
 export interface MemberListItem {
   id: number;
+  user_id: number;
   slug: string;
   first_name: string;
   last_name: string;
+  email: string;
   avatar: string | null;
   role: string;
+  is_active: boolean;
   skills: string[];
   member_number: string | null;
 }

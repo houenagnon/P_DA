@@ -12,48 +12,65 @@ User = get_user_model()
 
 
 def accept_candidature(candidature, reviewed_by) -> "Candidature":
+    """Accepte la candidature. Peut être appelé pour revenir sur un rejet précédent :
+    dans ce cas, le compte utilisateur existant est réactivé plutôt que recréé."""
     from .models import Candidature
     from .tasks import send_welcome_email
     from apps.members.models import MemberProfile
 
-    if candidature.status != Candidature.STATUS_PENDING:
-        raise ValidationError("Seules les candidatures en attente peuvent être acceptées.")
+    if candidature.status == Candidature.STATUS_ACCEPTED:
+        raise ValidationError("Cette candidature est déjà acceptée.")
 
-    temp_password = _generate_temp_password()
-    user = User.objects.create_user(
-        email=candidature.email,
-        first_name=candidature.first_name,
-        last_name=candidature.last_name,
-        phone=candidature.phone,
-        role="membre",
-        password=temp_password,
-    )
+    if candidature.user_id:
+        # Révision d'une décision précédente : on réactive le compte existant sans
+        # en recréer un ni régénérer de mot de passe temporaire.
+        user = candidature.user
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+    else:
+        temp_password = _generate_temp_password()
+        user = User.objects.create_user(
+            email=candidature.email,
+            first_name=candidature.first_name,
+            last_name=candidature.last_name,
+            phone=candidature.phone,
+            role="membre",
+            password=temp_password,
+        )
 
-    profile, _ = MemberProfile.objects.get_or_create(user=user)
-    if not profile.member_number:
-        profile.member_number = _generate_member_number()
-        profile.save(update_fields=["member_number"])
+        profile, _ = MemberProfile.objects.get_or_create(user=user)
+        if not profile.member_number:
+            profile.member_number = _generate_member_number()
+            profile.save(update_fields=["member_number"])
+
+        try:
+            send_welcome_email.delay(user.pk, temp_password)
+        except Exception:
+            logger.exception("Impossible d'envoyer l'email de bienvenue à %s", user.email)
 
     candidature.status = Candidature.STATUS_ACCEPTED
     candidature.reviewed_by = reviewed_by
     candidature.reviewed_at = timezone.now()
+    candidature.rejection_reason = ""
     candidature.user = user
-    candidature.save(update_fields=["status", "reviewed_by", "reviewed_at", "user"])
-
-    try:
-        send_welcome_email.delay(user.pk, temp_password)
-    except Exception:
-        logger.exception("Impossible d'envoyer l'email de bienvenue à %s", user.email)
+    candidature.save(update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "user"])
 
     return candidature
 
 
 def reject_candidature(candidature, reviewed_by, reason: str) -> "Candidature":
+    """Refuse la candidature. Peut être appelé pour revenir sur une acceptation précédente :
+    dans ce cas, le compte utilisateur créé est désactivé plutôt que supprimé."""
     from .models import Candidature
     from .tasks import send_rejection_email
 
-    if candidature.status != Candidature.STATUS_PENDING:
-        raise ValidationError("Seules les candidatures en attente peuvent être refusées.")
+    if candidature.status == Candidature.STATUS_REJECTED:
+        raise ValidationError("Cette candidature est déjà rejetée.")
+
+    if candidature.user_id and candidature.user.is_active:
+        candidature.user.is_active = False
+        candidature.user.save(update_fields=["is_active"])
 
     candidature.status = Candidature.STATUS_REJECTED
     candidature.reviewed_by = reviewed_by

@@ -1,15 +1,19 @@
 import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
 
+from apps.common.permissions import IsAdmin
 from .serializers import (
-    UserSerializer, DAHTokenObtainPairSerializer,
+    UserSerializer, UserAdminSerializer, DAHTokenObtainPairSerializer,
     PasswordChangeSerializer, PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer, EmailVerifySerializer, DeleteAccountSerializer,
 )
@@ -153,6 +157,22 @@ class EmailVerifyView(APIView):
         except (ValueError, User.DoesNotExist) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": "Email vérifié avec succès."})
+
+
+class UserAdminViewSet(viewsets.ModelViewSet):
+    """Gestion des utilisateurs par un administrateur (édition, désactivation, suppression)."""
+    serializer_class = UserAdminSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    http_method_names = ["get", "patch", "delete", "head", "options"]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ["role", "is_active"]
+    search_fields = ["first_name", "last_name", "email"]
+    queryset = User.objects.all().order_by("-created_at")
+
+    def perform_destroy(self, instance):
+        if instance.pk == self.request.user.pk:
+            raise ValidationError("Vous ne pouvez pas supprimer votre propre compte.")
+        instance.delete()
 
 
 class DeleteAccountView(APIView):

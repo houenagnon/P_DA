@@ -62,14 +62,20 @@ class PublicMemberProfileSerializer(serializers.ModelSerializer):
 
 
 class MemberListSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
     first_name = serializers.CharField(source="user.first_name", read_only=True)
     last_name = serializers.CharField(source="user.last_name", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
     avatar = serializers.ImageField(source="user.avatar", read_only=True)
     role = serializers.CharField(source="user.role", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
 
     class Meta:
         model = MemberProfile
-        fields = ["id", "slug", "first_name", "last_name", "avatar", "role", "skills", "member_number"]
+        fields = [
+            "id", "user_id", "slug", "first_name", "last_name", "email",
+            "avatar", "role", "is_active", "skills", "member_number",
+        ]
 
 
 class PublicMemberListSerializer(serializers.ModelSerializer):
