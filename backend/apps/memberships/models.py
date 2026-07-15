@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from apps.common.mixins import TimestampMixin
 
@@ -22,6 +23,11 @@ class Candidature(TimestampMixin):
     profession = models.CharField(max_length=150, verbose_name="Profession")
     linkedin_url = models.URLField(blank=True, verbose_name="LinkedIn")
     motivation = models.TextField(verbose_name="Motivation")
+    cv = models.FileField(
+        upload_to="candidatures_cv/", null=True, blank=True,
+        validators=[FileExtensionValidator(["pdf"])],
+        verbose_name="CV",
+    )
 
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING,

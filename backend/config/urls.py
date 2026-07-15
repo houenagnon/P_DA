@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from django.conf.urls.static import static
+from django.views.static import serve as static_serve
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
@@ -27,7 +27,17 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
+# Fichiers média (avatars, CV...) : servis par Django dans tous les environnements
+# (pas de CDN/nginx dédié pour l'instant). Sur Render, le disque n'étant pas
+# persistant, ces fichiers ne survivent pas à un redéploiement.
+urlpatterns += [
+    path(
+        f"{settings.MEDIA_URL.lstrip('/')}<path:path>",
+        static_serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
+]
+
 if settings.DEBUG:
     import debug_toolbar
     urlpatterns += [path("__debug__/", include(debug_toolbar.urls))]
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

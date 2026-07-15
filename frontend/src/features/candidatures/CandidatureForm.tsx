@@ -6,9 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { membershipsService } from "@/services/memberships.service";
 import { candidatureSchema, type CandidatureInput } from "@/features/auth/schemas";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, FileText, X } from "lucide-react";
 
 const STEPS = ["Identité", "Profil & Motivation"] as const;
+const MAX_CV_SIZE = 5 * 1024 * 1024; // 5 Mo
 
 function extractErrorMessage(error: unknown): string {
   const fallback = "Une erreur est survenue. Vérifiez vos informations et réessayez.";
@@ -47,11 +48,41 @@ function Field({
 
 export function CandidatureForm() {
   const [step, setStep] = useState(0);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvError, setCvError] = useState("");
 
   const mutation = useMutation({
-    mutationFn: (data: CandidatureInput) =>
-      membershipsService.submitCandidature(data),
+    mutationFn: (data: CandidatureInput) => {
+      if (!cvFile) return membershipsService.submitCandidature(data);
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) formData.append(key, value);
+      });
+      formData.append("cv", cvFile);
+      return membershipsService.submitCandidature(formData);
+    },
   });
+
+  function handleCvChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setCvFile(null);
+      setCvError("");
+      return;
+    }
+    if (file.type !== "application/pdf") {
+      setCvError("Le fichier doit être un PDF.");
+      setCvFile(null);
+      return;
+    }
+    if (file.size > MAX_CV_SIZE) {
+      setCvError("Le fichier ne doit pas dépasser 5 Mo.");
+      setCvFile(null);
+      return;
+    }
+    setCvError("");
+    setCvFile(file);
+  }
 
   const {
     register,
@@ -166,6 +197,35 @@ export function CandidatureForm() {
             <p className={`text-xs mt-1 text-right ${motivation.length < 50 ? "text-gray-400" : "text-green-600"}`}>
               {motivation.length} / 50 min.
             </p>
+          </Field>
+
+          <Field
+            label="CV (PDF)"
+            error={cvError}
+            hint="Optionnel — un CV à jour pourrait avantager votre candidature"
+          >
+            {cvFile ? (
+              <div className="flex items-center justify-between gap-2 border border-border rounded-lg px-3 py-2.5 text-sm">
+                <span className="flex items-center gap-2 text-brand-navy truncate">
+                  <FileText size={16} className="text-brand-blue shrink-0" />
+                  <span className="truncate">{cvFile.name}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCvFile(null)}
+                  className="text-gray-400 hover:text-red-500 shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handleCvChange}
+                className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand-blue/10 file:text-brand-blue file:text-sm file:font-medium hover:file:bg-brand-blue/20 border border-border rounded-lg"
+              />
+            )}
           </Field>
         </>
       )}

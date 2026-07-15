@@ -29,6 +29,7 @@ export interface CandidatureDetail extends CandidatureList {
   linkedin_url: string;
   motivation: string;
   rejection_reason: string;
+  cv: string | null;
 }
 
 export interface ReviewPayload {

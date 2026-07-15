@@ -8,7 +8,7 @@ import { membershipsService } from "@/services/memberships.service";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { isAdmin } from "@/types/auth.types";
-import { ArrowLeft, Check, X, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, X, ExternalLink, Trash2, FileText } from "lucide-react";
 import Link from "next/link";
 import type { CandidatureStatus } from "@/types/memberships.types";
 import { useState } from "react";
@@ -134,16 +134,28 @@ export default function CandidatureDetailPage({
                 </span>
               )}
             </div>
-            {candidature.linkedin_url && (
-              <a
-                href={candidature.linkedin_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-2 text-xs text-brand-blue hover:underline"
-              >
-                <ExternalLink size={11} /> LinkedIn
-              </a>
-            )}
+            <div className="flex items-center gap-3 mt-2">
+              {candidature.linkedin_url && (
+                <a
+                  href={candidature.linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-brand-blue hover:underline"
+                >
+                  <ExternalLink size={11} /> LinkedIn
+                </a>
+              )}
+              {candidature.cv && (
+                <a
+                  href={candidature.cv}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-brand-blue hover:underline"
+                >
+                  <FileText size={11} /> Voir le CV
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -7,8 +7,10 @@ import type {
 } from "@/types/memberships.types";
 
 export const membershipsService = {
-  submitCandidature: (data: CandidaturePayload) =>
-    api.post<{ detail: string }>("/memberships/candidatures/", data),
+  submitCandidature: (data: CandidaturePayload | FormData) =>
+    api.post<{ detail: string }>("/memberships/candidatures/", data, {
+      headers: data instanceof FormData ? { "Content-Type": undefined } : undefined,
+    }),
 
   listCandidatures: (params?: { status?: string; search?: string }) =>
     api.get<CandidatureList[]>("/memberships/candidatures/list/", { params }),

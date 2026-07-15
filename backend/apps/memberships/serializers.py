@@ -2,17 +2,25 @@ from rest_framework import serializers
 from .models import Candidature
 
 
+MAX_CV_SIZE = 5 * 1024 * 1024  # 5 Mo
+
+
 class CandidatureCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Candidature
         fields = [
             "first_name", "last_name", "email", "phone",
-            "country", "profession", "linkedin_url", "motivation",
+            "country", "profession", "linkedin_url", "motivation", "cv",
         ]
         # Le champ email est unique en base ; on désactive le UniqueValidator
         # automatique de DRF pour appliquer notre propre règle métier ci-dessous
         # (une resoumission après refus doit être autorisée, pas bloquée).
-        extra_kwargs = {"email": {"validators": []}}
+        extra_kwargs = {"email": {"validators": []}, "cv": {"required": False}}
+
+    def validate_cv(self, value):
+        if value and value.size > MAX_CV_SIZE:
+            raise serializers.ValidationError("Le CV ne doit pas dépasser 5 Mo.")
+        return value
 
     def validate_email(self, value):
         existing = Candidature.objects.filter(email=value).exclude(status=Candidature.STATUS_REJECTED).first()
@@ -57,12 +65,13 @@ class CandidatureListSerializer(serializers.ModelSerializer):
 
 class CandidatureDetailSerializer(serializers.ModelSerializer):
     reviewed_by_name = serializers.CharField(source="reviewed_by.full_name", read_only=True, default=None)
+    cv = serializers.FileField(read_only=True)
 
     class Meta:
         model = Candidature
         fields = [
             "id", "first_name", "last_name", "email", "phone", "country",
-            "profession", "linkedin_url", "motivation", "status",
+            "profession", "linkedin_url", "motivation", "cv", "status",
             "rejection_reason", "reviewed_at", "reviewed_by_name", "created_at",
         ]
 
