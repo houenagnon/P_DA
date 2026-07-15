@@ -12,6 +12,10 @@ export function useCurrentUser() {
     queryFn: () => authService.me().then((r) => r.data),
     retry: false,
     staleTime: 1000 * 60 * 5,
+    // Tant que le compte n'est pas vérifié, on repasse en arrière-plan pour détecter
+    // une vérification faite depuis un autre onglet (cas le plus courant : lien
+    // ouvert depuis l'email) sans que l'utilisateur ait à rafraîchir manuellement.
+    refetchInterval: (query) => (query.state.data && !query.state.data.email_verified ? 8000 : false),
   });
 }
 
