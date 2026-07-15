@@ -1,5 +1,8 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Candidature
+
+User = get_user_model()
 
 
 MAX_CV_SIZE = 5 * 1024 * 1024  # 5 Mo
@@ -23,6 +26,12 @@ class CandidatureCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
+        # Un compte utilisateur peut exister même si la candidature d'origine a été
+        # supprimée depuis (ex: candidature acceptée puis supprimée par un admin).
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Cette adresse email est déjà associée à un membre de Data Afrique Hub."
+            )
         existing = Candidature.objects.filter(email=value).exclude(status=Candidature.STATUS_REJECTED).first()
         if existing:
             if existing.status == Candidature.STATUS_ACCEPTED:

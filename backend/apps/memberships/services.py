@@ -28,6 +28,14 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         if not user.is_active:
             user.is_active = True
             user.save(update_fields=["is_active"])
+    elif (orphan_user := User.objects.filter(email=candidature.email).first()):
+        # Compte existant mais non relié (ex: candidature d'origine supprimée après
+        # acceptation) : on le relie/réactive plutôt que de tenter d'en recréer un
+        # et de percuter la contrainte d'unicité sur l'email.
+        user = orphan_user
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
     else:
         temp_password = _generate_temp_password()
         user = User.objects.create_user(
