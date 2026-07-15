@@ -1,25 +1,41 @@
 import logging
+import time
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
+_MAX_ATTEMPTS = 2  # au-delà, le budget temps (Gunicorn tue le worker à 30s) devient risqué
+
 
 def _send_email(subject: str, message: str, recipient_list: list[str]) -> None:
     """Envoie un email et logue systématiquement son contenu (avant l'envoi), pour
-    garder une trace exploitable même si le SMTP échoue ou tarde à répondre."""
+    garder une trace exploitable même si le SMTP échoue ou tarde à répondre.
+    Retente une fois en cas de coupure réseau transitoire vers le relais SMTP
+    (fréquent sur l'hébergement gratuit) avant d'abandonner."""
     logger.info(
         "Envoi email — À: %s — Sujet: %s\n%s",
         ", ".join(recipient_list), subject, message,
     )
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipient_list,
-        fail_silently=False,
-    )
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=recipient_list,
+                fail_silently=False,
+            )
+            return
+        except (TimeoutError, OSError):
+            if attempt == _MAX_ATTEMPTS:
+                raise
+            logger.warning(
+                "Envoi email à %s : tentative %s/%s échouée (réseau), nouvel essai...",
+                ", ".join(recipient_list), attempt, _MAX_ATTEMPTS,
+            )
+            time.sleep(1)
 
 
 @shared_task(bind=True, max_retries=3)
