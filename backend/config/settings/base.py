@@ -18,7 +18,6 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "cloudinary_storage",  # doit être déclaré avant staticfiles
     "django.contrib.staticfiles",
     "django.contrib.postgres",
 ]
