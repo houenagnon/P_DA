@@ -27,8 +27,13 @@ STORAGES = {
 
 # Pas de worker Celery/Redis déployé sur ce plan gratuit : les tâches (emails)
 # s'exécutent de façon synchrone dans la requête via le SMTP Brevo.
+# EAGER_PROPAGATES=True est nécessaire : sans ça, toute erreur d'envoi (SMTP down,
+# timeout...) est avalée silencieusement par Celery en mode eager et n'atteint
+# jamais les try/except qui sont censés la loguer (aucune erreur ni confirmation
+# n'apparaît alors dans les logs). Les appelants (.delay()) sont déjà tous protégés
+# par un try/except, donc une erreur d'email ne fait pas planter la requête HTTP.
 CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = False
+CELERY_TASK_EAGER_PROPAGATES = True
 
 # ─── Email (Brevo SMTP — plan gratuit 300 emails/jour) ───────────
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
