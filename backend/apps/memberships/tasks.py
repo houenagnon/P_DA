@@ -39,6 +39,34 @@ def send_candidature_received_notification(self, candidature_pk: int):
 
 
 @shared_task(bind=True, max_retries=3)
+def send_candidature_confirmation_email(self, candidature_pk: int):
+    from .models import Candidature
+
+    try:
+        c = Candidature.objects.get(pk=candidature_pk)
+    except Candidature.DoesNotExist:
+        return
+
+    send_mail(
+        subject="Votre candidature a bien été reçue — Data Afrique Hub",
+        message=(
+            f"Bonjour {c.first_name},\n\n"
+            f"Nous avons bien reçu votre candidature pour rejoindre la communauté "
+            f"Data Afrique Hub. Notre équipe va l'examiner et reviendra vers vous "
+            f"par email dès qu'une décision sera prise.\n\n"
+            f"Récapitulatif de votre candidature :\n"
+            f"  Pays     : {c.country}\n"
+            f"  Profession : {c.profession}\n\n"
+            f"Merci pour votre intérêt et à bientôt,\n"
+            f"L'équipe Data Afrique Hub"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[c.email],
+        fail_silently=False,
+    )
+
+
+@shared_task(bind=True, max_retries=3)
 def send_welcome_email(self, user_pk: int, temp_password: str):
     from django.contrib.auth import get_user_model
     User = get_user_model()

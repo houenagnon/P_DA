@@ -11,7 +11,7 @@ from .serializers import (
     CandidatureDetailSerializer, ReviewCandidatureSerializer,
 )
 from .services import accept_candidature, reject_candidature
-from .tasks import send_candidature_received_notification
+from .tasks import send_candidature_received_notification, send_candidature_confirmation_email
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,10 @@ class CandidatureCreateView(generics.CreateAPIView):
             send_candidature_received_notification.delay(candidature.pk)
         except Exception:
             logger.exception("Impossible d'envoyer la notification de candidature %s", candidature.pk)
+        try:
+            send_candidature_confirmation_email.delay(candidature.pk)
+        except Exception:
+            logger.exception("Impossible d'envoyer l'accusé de réception à %s", candidature.email)
         logger.info("Nouvelle candidature reçue : %s", candidature.email)
         return Response(
             {"detail": "Votre candidature a bien été reçue. Vous serez contacté par email."},
