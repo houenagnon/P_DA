@@ -1,6 +1,25 @@
+import logging
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
+
+logger = logging.getLogger(__name__)
+
+
+def _send_email(subject: str, message: str, recipient_list: list[str]) -> None:
+    """Envoie un email et logue systématiquement son contenu (avant l'envoi), pour
+    garder une trace exploitable même si le SMTP échoue ou tarde à répondre."""
+    logger.info(
+        "Envoi email — À: %s — Sujet: %s\n%s",
+        ", ".join(recipient_list), subject, message,
+    )
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=recipient_list,
+        fail_silently=False,
+    )
 
 
 @shared_task(bind=True, max_retries=3)
@@ -22,7 +41,7 @@ def send_candidature_received_notification(self, candidature_pk: int):
         return
 
     review_url = f"{settings.FRONTEND_URL}/manage/candidatures/{c.pk}/"
-    send_mail(
+    _send_email(
         subject=f"Nouvelle candidature — {c.full_name}",
         message=(
             f"Une nouvelle candidature a été reçue.\n\n"
@@ -32,9 +51,7 @@ def send_candidature_received_notification(self, candidature_pk: int):
             f"Métier   : {c.profession}\n\n"
             f"Examiner la candidature : {review_url}"
         ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=recipients,
-        fail_silently=False,
     )
 
 
@@ -47,7 +64,7 @@ def send_candidature_confirmation_email(self, candidature_pk: int):
     except Candidature.DoesNotExist:
         return
 
-    send_mail(
+    _send_email(
         subject="Votre candidature a bien été reçue — Data Afrique Hub",
         message=(
             f"Bonjour {c.first_name},\n\n"
@@ -60,9 +77,7 @@ def send_candidature_confirmation_email(self, candidature_pk: int):
             f"Merci pour votre intérêt et à bientôt,\n"
             f"L'équipe Data Afrique Hub"
         ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[c.email],
-        fail_silently=False,
     )
 
 
@@ -77,7 +92,7 @@ def send_welcome_email(self, user_pk: int, temp_password: str):
         return
 
     login_url = f"{settings.FRONTEND_URL}/login"
-    send_mail(
+    _send_email(
         subject="Bienvenue dans la communauté Data Afrique Hub !",
         message=(
             f"Bonjour {user.first_name},\n\n"
@@ -92,15 +107,13 @@ def send_welcome_email(self, user_pk: int, temp_password: str):
             f"À bientôt,\n"
             f"L'équipe Data Afrique Hub"
         ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
-        fail_silently=False,
     )
 
 
 @shared_task(bind=True, max_retries=3)
 def send_rejection_email(self, email: str, first_name: str, reason: str):
-    send_mail(
+    _send_email(
         subject="Votre candidature — Data Afrique Hub",
         message=(
             f"Bonjour {first_name},\n\n"
@@ -111,7 +124,5 @@ def send_rejection_email(self, email: str, first_name: str, reason: str):
             f"Cordialement,\n"
             f"L'équipe Data Afrique Hub"
         ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[email],
-        fail_silently=False,
     )
