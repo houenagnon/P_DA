@@ -187,6 +187,10 @@ EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+# Sans timeout, une connexion SMTP lente bloque la requête indéfiniment (les emails
+# sont envoyés de façon synchrone, CELERY_TASK_ALWAYS_EAGER=True) jusqu'à ce que
+# Gunicorn tue le worker — d'où un ERR_CONNECTION_RESET côté client.
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)
 
 # ─── Sécurité headers ────────────────────────────────────────────
 SECURE_BROWSER_XSS_FILTER = True
