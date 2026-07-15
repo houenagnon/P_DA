@@ -192,6 +192,11 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 # Gunicorn tue le worker — d'où un ERR_CONNECTION_RESET côté client.
 EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)
 
+# Clé API Brevo (Settings → SMTP & API → API Keys — différente de la clé SMTP) :
+# utilisée par apps.common.email.send_transactional_email, qui passe par l'API HTTP
+# de Brevo au lieu du SMTP brut (port 587), peu fiable en sortie depuis Render.
+BREVO_API_KEY = config("BREVO_API_KEY", default="")
+
 # ─── Sécurité headers ────────────────────────────────────────────
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True

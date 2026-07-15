@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from apps.common.background import fire_and_forget
 from .tokens import make_email_verify_token, make_password_reset_token
 
 User = get_user_model()
@@ -7,13 +8,19 @@ User = get_user_model()
 def send_verification_email_async(user: User) -> None:
     from .tasks import send_verification_email
     token = make_email_verify_token(user)
-    send_verification_email.delay(user.pk, token)
+    fire_and_forget(
+        send_verification_email.delay, user.pk, token,
+        error_message=f"Impossible d'envoyer l'email de vérification à {user.email}",
+    )
 
 
 def send_password_reset_email_async(user: User) -> None:
     from .tasks import send_password_reset_email
     token = make_password_reset_token(user)
-    send_password_reset_email.delay(user.pk, token)
+    fire_and_forget(
+        send_password_reset_email.delay, user.pk, token,
+        error_message=f"Impossible d'envoyer l'email de réinitialisation à {user.email}",
+    )
 
 
 def verify_user_email(token: str) -> User:
