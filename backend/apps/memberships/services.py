@@ -21,12 +21,13 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         raise ValidationError("Cette candidature est déjà acceptée.")
 
     if candidature.user_id:
-        # Révision d'une décision précédente : on réactive le compte existant sans
-        # en recréer un ni régénérer de mot de passe temporaire.
+        # Révision d'une décision précédente : on réactive le compte existant. On lui
+        # régénère quand même un mot de passe temporaire — la personne ne peut pas être
+        # certaine de connaître le précédent (jamais reçu, oublié, envoi échoué...).
         user = candidature.user
-        _restore_member_status(user)
+        temp_password = _restore_member_status(user)
         fire_and_forget(
-            send_membership_restored_email.delay, user.pk,
+            send_membership_restored_email.delay, user.pk, temp_password,
             error_message=f"Impossible d'envoyer l'email de réactivation à {user.email}",
         )
     elif (orphan_user := User.objects.filter(email=candidature.email).first()):
@@ -35,9 +36,9 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         # on le relie/réactive plutôt que de tenter d'en recréer un et de percuter la
         # contrainte d'unicité sur l'email.
         user = orphan_user
-        _restore_member_status(user)
+        temp_password = _restore_member_status(user)
         fire_and_forget(
-            send_membership_restored_email.delay, user.pk,
+            send_membership_restored_email.delay, user.pk, temp_password,
             error_message=f"Impossible d'envoyer l'email de réactivation à {user.email}",
         )
     else:
@@ -108,18 +109,21 @@ def reject_candidature(candidature, reviewed_by, reason: str) -> "Candidature":
     return candidature
 
 
-def _restore_member_status(user) -> None:
-    """Réactive un compte et lui redonne le rôle membre — sans jamais rétrograder
-    un rôle déjà promu (bureau, formateur, mentor...)."""
-    update_fields = []
+def _restore_member_status(user) -> str:
+    """Réactive un compte, lui redonne le rôle membre (sans jamais rétrograder un
+    rôle déjà promu : bureau, formateur, mentor...) et régénère un mot de passe
+    temporaire — on ne peut pas supposer que la personne connaît encore l'ancien."""
+    temp_password = _generate_temp_password()
+    user.set_password(temp_password)
+    update_fields = ["password"]
     if not user.is_active:
         user.is_active = True
         update_fields.append("is_active")
     if not user.is_member:
         user.role = "membre"
         update_fields.append("role")
-    if update_fields:
-        user.save(update_fields=update_fields)
+    user.save(update_fields=update_fields)
+    return temp_password
 
 
 def _generate_temp_password() -> str:

@@ -94,9 +94,10 @@ def send_welcome_email(self, user_pk: int, temp_password: str):
 
 
 @shared_task(bind=True, max_retries=3)
-def send_membership_restored_email(self, user_pk: int):
+def send_membership_restored_email(self, user_pk: int, temp_password: str):
     """Candidature acceptée en réutilisant un compte existant (retour en arrière
-    après un refus, ou compte orphelin) : pas de nouveau mot de passe à communiquer."""
+    après un refus, ou compte orphelin) : un nouveau mot de passe temporaire est
+    communiqué, la personne ne pouvant pas être certaine de connaître l'ancien."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
 
@@ -112,9 +113,12 @@ def send_membership_restored_email(self, user_pk: int):
             f"Bonjour {user.first_name},\n\n"
             f"Votre candidature a été acceptée. Vous faites de nouveau partie de la "
             f"communauté Data Afrique Hub !\n\n"
-            f"Connectez-vous avec vos identifiants existants ici : {login_url}\n\n"
-            f"Mot de passe oublié ? Utilisez l'option « Mot de passe oublié » sur la "
-            f"page de connexion pour le réinitialiser.\n\n"
+            f"Voici vos identifiants de connexion :\n"
+            f"  Email          : {user.email}\n"
+            f"  Mot de passe   : {temp_password}\n\n"
+            f"Connectez-vous ici : {login_url}\n\n"
+            f"Nous vous recommandons de changer votre mot de passe après la première connexion "
+            f"(Profil → Sécurité).\n\n"
             f"À bientôt,\n"
             f"L'équipe Data Afrique Hub"
         ),
