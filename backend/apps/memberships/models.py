@@ -1,7 +1,19 @@
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from apps.common.mixins import TimestampMixin
+
+
+def _cv_storage():
+    """Le CV est un PDF (fichier "raw" pour Cloudinary, pas une image) : il a besoin
+    d'un backend dédié, différent du STORAGES["default"] utilisé pour les images
+    (avatars...). En dev, on reste sur le disque local (pas de credentials Cloudinary
+    nécessaires pour développer)."""
+    if settings.DEBUG:
+        return FileSystemStorage()
+    from cloudinary_storage.storage import RawMediaCloudinaryStorage
+    return RawMediaCloudinaryStorage()
 
 
 class Candidature(TimestampMixin):
@@ -25,6 +37,7 @@ class Candidature(TimestampMixin):
     motivation = models.TextField(verbose_name="Motivation")
     cv = models.FileField(
         upload_to="candidatures_cv/", null=True, blank=True,
+        storage=_cv_storage,
         validators=[FileExtensionValidator(["pdf"])],
         verbose_name="CV",
     )

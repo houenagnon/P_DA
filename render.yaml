@@ -38,3 +38,12 @@ services:
       # plus fiable que le SMTP brut (port 587) en sortie depuis Render.
       - key: BREVO_API_KEY
         sync: false
+      # Cloudinary (https://cloudinary.com/console → Dashboard) : stockage persistant
+      # des fichiers média (CV, avatars...) — le disque Render ne survit pas à un
+      # redéploiement.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

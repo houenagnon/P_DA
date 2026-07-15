@@ -18,6 +18,7 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "cloudinary_storage",  # doit être déclaré avant staticfiles
     "django.contrib.staticfiles",
     "django.contrib.postgres",
 ]
@@ -31,6 +32,7 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "django_celery_beat",
     "django_extensions",
+    "cloudinary",
 ]
 
 LOCAL_APPS = [
@@ -123,6 +125,14 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Cloudinary (stockage média persistant en prod — le disque Render n'est pas
+# conservé entre deux redéploiements). Sans effet en dev (STORAGES par défaut).
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": config("CLOUDINARY_CLOUD_NAME", default=""),
+    "API_KEY": config("CLOUDINARY_API_KEY", default=""),
+    "API_SECRET": config("CLOUDINARY_API_SECRET", default=""),
+}
 
 # ─── REST Framework ──────────────────────────────────────────────
 REST_FRAMEWORK = {

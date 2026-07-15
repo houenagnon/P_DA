@@ -20,8 +20,11 @@ if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 # WhiteNoise sert les fichiers statiques directement depuis Gunicorn (pas de Redis/nginx nécessaire).
+# Cloudinary sert les fichiers média : le disque de Render n'est pas persistant
+# (effacé à chaque redéploiement), ce qui rendait les fichiers uploadés (CV,
+# avatars...) inaccessibles après coup malgré leur référence en base.
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
@@ -35,10 +38,5 @@ STORAGES = {
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# ─── Email (Brevo SMTP — plan gratuit 300 emails/jour) ───────────
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp-relay.brevo.com")
-EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+# Les emails sont envoyés via l'API HTTP de Brevo (apps.common.email), pas via le
+# backend SMTP de Django — voir settings.BREVO_API_KEY dans base.py.
