@@ -62,6 +62,13 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
             error_message=f"Impossible d'envoyer l'email de bienvenue à {user.email}",
         )
 
+    if not user.email_verified:
+        # Tant que l'email n'est pas vérifié, l'accès aux fonctionnalités est bloqué
+        # (VerifiedJWTAuthentication) — on envoie le lien de vérification dès
+        # l'acceptation plutôt que d'attendre une première tentative de connexion.
+        from apps.accounts.services import send_verification_email_async
+        send_verification_email_async(user)
+
     candidature.status = Candidature.STATUS_ACCEPTED
     candidature.reviewed_by = reviewed_by
     candidature.reviewed_at = timezone.now()

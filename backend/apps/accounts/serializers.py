@@ -43,6 +43,9 @@ class DAHTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
+        if not self.user.email_verified:
+            from .services import send_verification_email_async
+            send_verification_email_async(self.user)
         return data
 
 
