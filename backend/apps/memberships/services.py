@@ -25,17 +25,14 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         # Révision d'une décision précédente : on réactive le compte existant sans
         # en recréer un ni régénérer de mot de passe temporaire.
         user = candidature.user
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=["is_active"])
+        _restore_member_status(user)
     elif (orphan_user := User.objects.filter(email=candidature.email).first()):
         # Compte existant mais non relié (ex: candidature d'origine supprimée après
-        # acceptation) : on le relie/réactive plutôt que de tenter d'en recréer un
-        # et de percuter la contrainte d'unicité sur l'email.
+        # acceptation, ou statut de membre perdu puis nouvelle candidature acceptée) :
+        # on le relie/réactive plutôt que de tenter d'en recréer un et de percuter la
+        # contrainte d'unicité sur l'email.
         user = orphan_user
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=["is_active"])
+        _restore_member_status(user)
     else:
         temp_password = _generate_temp_password()
         user = User.objects.create_user(
@@ -76,9 +73,19 @@ def reject_candidature(candidature, reviewed_by, reason: str) -> "Candidature":
     if candidature.status == Candidature.STATUS_REJECTED:
         raise ValidationError("Cette candidature est déjà rejetée.")
 
-    if candidature.user_id and candidature.user.is_active:
-        candidature.user.is_active = False
-        candidature.user.save(update_fields=["is_active"])
+    if candidature.user_id:
+        user = candidature.user
+        update_fields = []
+        if user.is_active:
+            user.is_active = False
+            update_fields.append("is_active")
+        # Ne rétrograde que le rôle "membre" simple — on ne touche pas aux rôles
+        # promus (bureau, formateur, mentor...), qui restent une décision admin explicite.
+        if user.role == "membre":
+            user.role = "visiteur"
+            update_fields.append("role")
+        if update_fields:
+            user.save(update_fields=update_fields)
 
     candidature.status = Candidature.STATUS_REJECTED
     candidature.reviewed_by = reviewed_by
@@ -92,6 +99,20 @@ def reject_candidature(candidature, reviewed_by, reason: str) -> "Candidature":
         logger.exception("Impossible d'envoyer l'email de refus à %s", candidature.email)
 
     return candidature
+
+
+def _restore_member_status(user) -> None:
+    """Réactive un compte et lui redonne le rôle membre — sans jamais rétrograder
+    un rôle déjà promu (bureau, formateur, mentor...)."""
+    update_fields = []
+    if not user.is_active:
+        user.is_active = True
+        update_fields.append("is_active")
+    if not user.is_member:
+        user.role = "membre"
+        update_fields.append("role")
+    if update_fields:
+        user.save(update_fields=update_fields)
 
 
 def _generate_temp_password() -> str:

@@ -96,3 +96,9 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     @property
     def is_admin(self):
         return self.role == ROLES.ADMIN
+
+    @property
+    def is_member(self):
+        """Un membre est un utilisateur dont la candidature a été acceptée et qui n'a
+        pas perdu ce statut depuis (rôle repassé à visiteur/candidat par un admin)."""
+        return self.role not in (ROLES.VISITEUR, ROLES.CANDIDAT)

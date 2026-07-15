@@ -26,29 +26,29 @@ class CandidatureCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        # Un compte utilisateur peut exister même si la candidature d'origine a été
-        # supprimée depuis (ex: candidature acceptée puis supprimée par un admin).
-        if User.objects.filter(email=value).exists():
+        # Un compte utilisateur peut exister sans que la personne soit membre : le rôle
+        # (pas la simple présence du compte) fait foi — un admin peut avoir révoqué le
+        # statut de membre (rôle repassé à visiteur/candidat) directement depuis /manage/members.
+        user = User.objects.filter(email=value).first()
+        if user and user.is_member:
             raise serializers.ValidationError(
                 "Cette adresse email est déjà associée à un membre de Data Afrique Hub."
             )
-        existing = Candidature.objects.filter(email=value).exclude(status=Candidature.STATUS_REJECTED).first()
-        if existing:
-            if existing.status == Candidature.STATUS_ACCEPTED:
-                raise serializers.ValidationError(
-                    "Cette adresse email est déjà associée à un membre accepté de Data Afrique Hub."
-                )
+        if Candidature.objects.filter(email=value, status=Candidature.STATUS_PENDING).exists():
             raise serializers.ValidationError(
                 "Une candidature est déjà en cours de traitement avec cet email."
             )
         return value
 
     def create(self, validated_data):
-        # Resoumission après un refus précédent : on met à jour la candidature
-        # existante plutôt que d'en créer une nouvelle (contrainte unique sur l'email).
-        existing = Candidature.objects.filter(
-            email=validated_data["email"], status=Candidature.STATUS_REJECTED,
-        ).first()
+        # Resoumission après un refus, ou après une perte de statut de membre : on met
+        # à jour la candidature existante plutôt que d'en créer une nouvelle (contrainte
+        # unique sur l'email). validate_email a déjà écarté les cas encore bloquants.
+        existing = (
+            Candidature.objects.filter(email=validated_data["email"])
+            .exclude(status=Candidature.STATUS_PENDING)
+            .first()
+        )
         if existing:
             for field, value in validated_data.items():
                 setattr(existing, field, value)
