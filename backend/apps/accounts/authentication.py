@@ -9,6 +9,7 @@ _EXEMPT_PATHS = {
     "/api/v1/auth/logout/",
     "/api/v1/auth/token/refresh/",
     "/api/v1/auth/email/verify/",
+    "/api/v1/auth/email/verify/resend/",
     "/api/v1/auth/password/change/",
     "/api/v1/auth/account/delete/",
 }

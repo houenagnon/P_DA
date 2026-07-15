@@ -18,7 +18,7 @@ from .serializers import (
     PasswordResetConfirmSerializer, EmailVerifySerializer, DeleteAccountSerializer,
 )
 from .services import (
-    send_password_reset_email_async,
+    send_password_reset_email_async, send_verification_email_async,
     verify_user_email, reset_user_password,
 )
 
@@ -157,6 +157,16 @@ class EmailVerifyView(APIView):
         except (ValueError, User.DoesNotExist) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": "Email vérifié avec succès."})
+
+
+class ResendVerificationEmailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.email_verified:
+            return Response({"detail": "Votre email est déjà vérifié."}, status=status.HTTP_400_BAD_REQUEST)
+        send_verification_email_async(request.user)
+        return Response({"detail": "Email de vérification renvoyé."})
 
 
 class UserAdminViewSet(viewsets.ModelViewSet):

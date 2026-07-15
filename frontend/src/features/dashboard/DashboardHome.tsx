@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { eventsService } from "@/services/events.service";
 import { membersService } from "@/services/members.service";
 import { membershipsService } from "@/services/memberships.service";
-import { Users, CalendarDays, Award, FileText, ArrowRight, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Users, CalendarDays, Award, FileText, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
 import { isAdmin, isBureau } from "@/types/auth.types";
 import { formatDate, roleLabel, avatarUrl } from "@/lib/utils";
 import type { Event } from "@/types/events.types";
@@ -70,17 +70,6 @@ export function DashboardHome() {
           />
         </div>
       </div>
-
-      {/* Alert email non vérifié */}
-      {user && !user.email_verified && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
-          <AlertCircle size={18} className="text-amber-500 shrink-0" />
-          <p className="text-amber-700">
-            Votre adresse email n&apos;est pas encore vérifiée.{" "}
-            <button className="underline font-medium">Renvoyer l&apos;email</button>
-          </p>
-        </div>
-      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

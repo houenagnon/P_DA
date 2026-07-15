@@ -29,6 +29,9 @@ export const authService = {
   verifyEmail: (token: string) =>
     api.post("/auth/email/verify/", { token }),
 
+  resendVerificationEmail: () =>
+    api.post<{ detail: string }>("/auth/email/verify/resend/"),
+
   deleteAccount: (password: string) =>
     api.post("/auth/account/delete/", { password }),
 };

@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     DAHTokenObtainPairView, DAHTokenRefreshView, LogoutView, MeView,
     PasswordChangeView, PasswordResetRequestView, PasswordResetConfirmView,
-    EmailVerifyView, DeleteAccountView, UserAdminViewSet,
+    EmailVerifyView, ResendVerificationEmailView, DeleteAccountView, UserAdminViewSet,
 )
 
 router = DefaultRouter()
@@ -19,6 +19,7 @@ urlpatterns = [
     path("password/reset/", PasswordResetRequestView.as_view(), name="auth-password-reset"),
     path("password/reset/confirm/", PasswordResetConfirmView.as_view(), name="auth-password-reset-confirm"),
     path("email/verify/", EmailVerifyView.as_view(), name="auth-email-verify"),
+    path("email/verify/resend/", ResendVerificationEmailView.as_view(), name="auth-email-verify-resend"),
     path("account/delete/", DeleteAccountView.as_view(), name="auth-account-delete"),
     path("", include(router.urls)),
 ]
