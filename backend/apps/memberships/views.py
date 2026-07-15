@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.background import fire_and_forget
 from apps.common.permissions import IsAdminOrPresident
 from .models import Candidature
 from .serializers import (
@@ -24,14 +25,16 @@ class CandidatureCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         candidature = serializer.save()
-        try:
-            send_candidature_received_notification.delay(candidature.pk)
-        except Exception:
-            logger.exception("Impossible d'envoyer la notification de candidature %s", candidature.pk)
-        try:
-            send_candidature_confirmation_email.delay(candidature.pk)
-        except Exception:
-            logger.exception("Impossible d'envoyer l'accusé de réception à %s", candidature.email)
+        # En tâche de fond : deux envois synchrones à la suite (notification admin +
+        # accusé de réception) pouvaient dépasser le timeout de Gunicorn.
+        fire_and_forget(
+            send_candidature_received_notification.delay, candidature.pk,
+            error_message=f"Impossible d'envoyer la notification de candidature {candidature.pk}",
+        )
+        fire_and_forget(
+            send_candidature_confirmation_email.delay, candidature.pk,
+            error_message=f"Impossible d'envoyer l'accusé de réception à {candidature.email}",
+        )
         logger.info("Nouvelle candidature reçue : %s", candidature.email)
         return Response(
             {"detail": "Votre candidature a bien été reçue. Vous serez contacté par email."},

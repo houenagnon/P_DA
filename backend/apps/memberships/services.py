@@ -1,4 +1,3 @@
-import logging
 import random
 import secrets
 import string
@@ -6,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-logger = logging.getLogger(__name__)
+from apps.common.background import fire_and_forget
 
 User = get_user_model()
 
@@ -26,10 +25,10 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         # en recréer un ni régénérer de mot de passe temporaire.
         user = candidature.user
         _restore_member_status(user)
-        try:
-            send_membership_restored_email.delay(user.pk)
-        except Exception:
-            logger.exception("Impossible d'envoyer l'email de réactivation à %s", user.email)
+        fire_and_forget(
+            send_membership_restored_email.delay, user.pk,
+            error_message=f"Impossible d'envoyer l'email de réactivation à {user.email}",
+        )
     elif (orphan_user := User.objects.filter(email=candidature.email).first()):
         # Compte existant mais non relié (ex: candidature d'origine supprimée après
         # acceptation, ou statut de membre perdu puis nouvelle candidature acceptée) :
@@ -37,10 +36,10 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         # contrainte d'unicité sur l'email.
         user = orphan_user
         _restore_member_status(user)
-        try:
-            send_membership_restored_email.delay(user.pk)
-        except Exception:
-            logger.exception("Impossible d'envoyer l'email de réactivation à %s", user.email)
+        fire_and_forget(
+            send_membership_restored_email.delay, user.pk,
+            error_message=f"Impossible d'envoyer l'email de réactivation à {user.email}",
+        )
     else:
         temp_password = _generate_temp_password()
         user = User.objects.create_user(
@@ -57,10 +56,10 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
             profile.member_number = _generate_member_number()
             profile.save(update_fields=["member_number"])
 
-        try:
-            send_welcome_email.delay(user.pk, temp_password)
-        except Exception:
-            logger.exception("Impossible d'envoyer l'email de bienvenue à %s", user.email)
+        fire_and_forget(
+            send_welcome_email.delay, user.pk, temp_password,
+            error_message=f"Impossible d'envoyer l'email de bienvenue à {user.email}",
+        )
 
     candidature.status = Candidature.STATUS_ACCEPTED
     candidature.reviewed_by = reviewed_by
@@ -101,10 +100,10 @@ def reject_candidature(candidature, reviewed_by, reason: str) -> "Candidature":
     candidature.rejection_reason = reason
     candidature.save(update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason"])
 
-    try:
-        send_rejection_email.delay(candidature.email, candidature.first_name, reason)
-    except Exception:
-        logger.exception("Impossible d'envoyer l'email de refus à %s", candidature.email)
+    fire_and_forget(
+        send_rejection_email.delay, candidature.email, candidature.first_name, reason,
+        error_message=f"Impossible d'envoyer l'email de refus à {candidature.email}",
+    )
 
     return candidature
 
