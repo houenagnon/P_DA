@@ -15,7 +15,7 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
     """Accepte la candidature. Peut être appelé pour revenir sur un rejet précédent :
     dans ce cas, le compte utilisateur existant est réactivé plutôt que recréé."""
     from .models import Candidature
-    from .tasks import send_welcome_email
+    from .tasks import send_welcome_email, send_membership_restored_email
     from apps.members.models import MemberProfile
 
     if candidature.status == Candidature.STATUS_ACCEPTED:
@@ -26,6 +26,10 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         # en recréer un ni régénérer de mot de passe temporaire.
         user = candidature.user
         _restore_member_status(user)
+        try:
+            send_membership_restored_email.delay(user.pk)
+        except Exception:
+            logger.exception("Impossible d'envoyer l'email de réactivation à %s", user.email)
     elif (orphan_user := User.objects.filter(email=candidature.email).first()):
         # Compte existant mais non relié (ex: candidature d'origine supprimée après
         # acceptation, ou statut de membre perdu puis nouvelle candidature acceptée) :
@@ -33,6 +37,10 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         # contrainte d'unicité sur l'email.
         user = orphan_user
         _restore_member_status(user)
+        try:
+            send_membership_restored_email.delay(user.pk)
+        except Exception:
+            logger.exception("Impossible d'envoyer l'email de réactivation à %s", user.email)
     else:
         temp_password = _generate_temp_password()
         user = User.objects.create_user(

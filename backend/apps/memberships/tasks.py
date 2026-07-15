@@ -112,6 +112,35 @@ def send_welcome_email(self, user_pk: int, temp_password: str):
 
 
 @shared_task(bind=True, max_retries=3)
+def send_membership_restored_email(self, user_pk: int):
+    """Candidature acceptée en réutilisant un compte existant (retour en arrière
+    après un refus, ou compte orphelin) : pas de nouveau mot de passe à communiquer."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    try:
+        user = User.objects.get(pk=user_pk)
+    except User.DoesNotExist:
+        return
+
+    login_url = f"{settings.FRONTEND_URL}/login"
+    _send_email(
+        subject="Votre candidature a été acceptée — Data Afrique Hub",
+        message=(
+            f"Bonjour {user.first_name},\n\n"
+            f"Votre candidature a été acceptée. Vous faites de nouveau partie de la "
+            f"communauté Data Afrique Hub !\n\n"
+            f"Connectez-vous avec vos identifiants existants ici : {login_url}\n\n"
+            f"Mot de passe oublié ? Utilisez l'option « Mot de passe oublié » sur la "
+            f"page de connexion pour le réinitialiser.\n\n"
+            f"À bientôt,\n"
+            f"L'équipe Data Afrique Hub"
+        ),
+        recipient_list=[user.email],
+    )
+
+
+@shared_task(bind=True, max_retries=3)
 def send_rejection_email(self, email: str, first_name: str, reason: str):
     _send_email(
         subject="Votre candidature — Data Afrique Hub",
