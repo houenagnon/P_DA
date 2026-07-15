@@ -9,13 +9,39 @@ class CandidatureCreateSerializer(serializers.ModelSerializer):
             "first_name", "last_name", "email", "phone",
             "country", "profession", "linkedin_url", "motivation",
         ]
+        # Le champ email est unique en base ; on désactive le UniqueValidator
+        # automatique de DRF pour appliquer notre propre règle métier ci-dessous
+        # (une resoumission après refus doit être autorisée, pas bloquée).
+        extra_kwargs = {"email": {"validators": []}}
 
     def validate_email(self, value):
-        if Candidature.objects.filter(email=value).exclude(status=Candidature.STATUS_REJECTED).exists():
+        existing = Candidature.objects.filter(email=value).exclude(status=Candidature.STATUS_REJECTED).first()
+        if existing:
+            if existing.status == Candidature.STATUS_ACCEPTED:
+                raise serializers.ValidationError(
+                    "Cette adresse email est déjà associée à un membre accepté de Data Afrique Hub."
+                )
             raise serializers.ValidationError(
-                "Une candidature est déjà en cours avec cet email."
+                "Une candidature est déjà en cours de traitement avec cet email."
             )
         return value
+
+    def create(self, validated_data):
+        # Resoumission après un refus précédent : on met à jour la candidature
+        # existante plutôt que d'en créer une nouvelle (contrainte unique sur l'email).
+        existing = Candidature.objects.filter(
+            email=validated_data["email"], status=Candidature.STATUS_REJECTED,
+        ).first()
+        if existing:
+            for field, value in validated_data.items():
+                setattr(existing, field, value)
+            existing.status = Candidature.STATUS_PENDING
+            existing.rejection_reason = ""
+            existing.reviewed_at = None
+            existing.reviewed_by = None
+            existing.save()
+            return existing
+        return super().create(validated_data)
 
 
 class CandidatureListSerializer(serializers.ModelSerializer):

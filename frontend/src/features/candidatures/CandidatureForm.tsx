@@ -10,6 +10,17 @@ import { CheckCircle2 } from "lucide-react";
 
 const STEPS = ["Identité", "Profil & Motivation"] as const;
 
+function extractErrorMessage(error: unknown): string {
+  const fallback = "Une erreur est survenue. Vérifiez vos informations et réessayez.";
+  const detail = (error as {
+    response?: { data?: { detail?: Record<string, string[]> | string } };
+  })?.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  const firstKey = Object.keys(detail)[0];
+  return (firstKey && detail[firstKey]?.[0]) || fallback;
+}
+
 const inputCls =
   "w-full border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
@@ -161,7 +172,7 @@ export function CandidatureForm() {
 
       {mutation.isError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-          Une erreur est survenue. Vérifiez vos informations et réessayez.
+          {extractErrorMessage(mutation.error)}
         </div>
       )}
 
