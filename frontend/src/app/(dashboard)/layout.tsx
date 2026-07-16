@@ -9,7 +9,7 @@ import { authService } from "@/services/auth.service";
 import { AlertCircle } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: user } = useCurrentUser();
+  const { data: user, refetch, isFetching } = useCurrentUser();
   const [resendDone, setResendDone] = useState(false);
 
   const resendMutation = useMutation({
@@ -38,19 +38,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   L&apos;accès aux fonctionnalités est bloqué tant que votre email n&apos;est pas vérifié.
                   Consultez votre boîte de réception (et les spams).
                 </p>
-                {resendDone ? (
+                {resendDone && (
                   <p className="text-sm text-green-600 font-medium">
                     Email renvoyé, vérifiez votre boîte de réception.
                   </p>
-                ) : (
+                )}
+
+                <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => resendMutation.mutate()}
-                    disabled={resendMutation.isPending}
+                    onClick={() => refetch()}
+                    disabled={isFetching}
                     className="px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-brand-blue/90 disabled:opacity-50 transition-colors"
                   >
-                    {resendMutation.isPending ? "Envoi en cours…" : "Renvoyer l'email de vérification"}
+                    {isFetching ? "Vérification…" : "J'ai vérifié mon email — Actualiser"}
                   </button>
-                )}
+                  {!resendDone && (
+                    <button
+                      onClick={() => resendMutation.mutate()}
+                      disabled={resendMutation.isPending}
+                      className="px-4 py-2 border border-gray-200 text-brand-navy rounded-xl text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    >
+                      {resendMutation.isPending ? "Envoi en cours…" : "Renvoyer l'email de vérification"}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
