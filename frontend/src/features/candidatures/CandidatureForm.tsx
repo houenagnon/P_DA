@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { membershipsService } from "@/services/memberships.service";
 import { candidatureSchema, type CandidatureInput } from "@/features/auth/schemas";
+import { AFRICAN_COUNTRIES, OTHER_COUNTRIES } from "@/lib/countries";
 import { CheckCircle2, FileText, X } from "lucide-react";
 
 const STEPS = ["Identité", "Profil & Motivation"] as const;
@@ -171,7 +172,15 @@ export function CandidatureForm() {
         <>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Pays *" error={errors.country?.message}>
-              <input {...register("country")} placeholder="Bénin" className={inputCls} />
+              <select {...register("country")} defaultValue="" className={`${inputCls} bg-white`}>
+                <option value="" disabled>Sélectionnez un pays</option>
+                <optgroup label="Afrique">
+                  {AFRICAN_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </optgroup>
+                <optgroup label="Autres pays">
+                  {OTHER_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </optgroup>
+              </select>
             </Field>
             <Field label="Profession *" error={errors.profession?.message}>
               <input {...register("profession")} placeholder="Data Scientist" className={inputCls} />
