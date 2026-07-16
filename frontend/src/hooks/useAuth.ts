@@ -15,7 +15,13 @@ export function useCurrentUser() {
     // Tant que le compte n'est pas vérifié, on repasse en arrière-plan pour détecter
     // une vérification faite depuis un autre onglet (cas le plus courant : lien
     // ouvert depuis l'email) sans que l'utilisateur ait à rafraîchir manuellement.
+    // refetchIntervalInBackground : sans ça, le polling se met en pause dès que cet
+    // onglet n'est plus au premier plan (ex: on part cliquer le lien dans un autre
+    // onglet/appli) — refetchOnWindowFocus étant désactivé globalement, revenir sur
+    // l'onglet ne redéclenchait pas non plus de vérification.
     refetchInterval: (query) => (query.state.data && !query.state.data.email_verified ? 8000 : false),
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: (query) => !query.state.data?.email_verified,
   });
 }
 
