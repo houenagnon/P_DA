@@ -1,26 +1,24 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth.service";
 import Link from "next/link";
 
 export default function VerifyEmailPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const qc = useQueryClient();
 
   useEffect(() => {
     authService.verifyEmail(token)
       .then(() => {
-        // Le compte peut déjà avoir une session active (autre onglet, ou même onglet
-        // avant redirection) : on invalide le cache pour que le dashboard cesse
-        // immédiatement d'être flouté, sans attendre l'expiration du staleTime.
-        qc.invalidateQueries({ queryKey: ["me"] });
         setStatus("success");
+        // Redirection dure (pas une navigation Next.js) : force un rechargement
+        // complet de page, donc un état 100% à jour côté dashboard, sans dépendre
+        // du cache ou d'un mécanisme de synchronisation en arrière-plan.
+        setTimeout(() => { window.location.href = "/dashboard"; }, 1500);
       })
       .catch(() => setStatus("error"));
-  }, [token, qc]);
+  }, [token]);
 
   return (
     <>
@@ -38,9 +36,12 @@ export default function VerifyEmailPage({ params }: { params: Promise<{ token: s
           <div className="text-5xl mb-2">✅</div>
           <p className="text-sm font-medium text-brand-navy">Email vérifié avec succès !</p>
           <p className="text-sm text-muted-foreground">Votre compte est maintenant actif.</p>
-          <Link href="/dashboard" className="inline-block mt-3 px-6 py-2.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-brand-blue/90 transition-colors">
+          <button
+            onClick={() => { window.location.href = "/dashboard"; }}
+            className="inline-block mt-3 px-6 py-2.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-brand-blue/90 transition-colors"
+          >
             Accéder au tableau de bord
-          </Link>
+          </button>
         </div>
       )}
 

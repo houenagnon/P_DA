@@ -9,7 +9,7 @@ import { authService } from "@/services/auth.service";
 import { AlertCircle } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: user, refetch, isFetching } = useCurrentUser();
+  const { data: user } = useCurrentUser();
   const [resendDone, setResendDone] = useState(false);
 
   const resendMutation = useMutation({
@@ -46,11 +46,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => refetch()}
-                    disabled={isFetching}
-                    className="px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-brand-blue/90 disabled:opacity-50 transition-colors"
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-brand-blue/90 transition-colors"
                   >
-                    {isFetching ? "Vérification…" : "J'ai vérifié mon email — Actualiser"}
+                    J&apos;ai vérifié mon email — Actualiser
                   </button>
                   {!resendDone && (
                     <button
