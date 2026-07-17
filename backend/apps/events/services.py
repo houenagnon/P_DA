@@ -4,6 +4,9 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.common.background import fire_and_forget
+from .tasks import send_event_registration_confirmation
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,6 +40,13 @@ def register_participant(
         )
         if not created:
             raise ValidationError("Vous êtes déjà inscrit à cet événement.")
+
+        transaction.on_commit(
+            lambda: fire_and_forget(
+                send_event_registration_confirmation.delay, participant.pk,
+                error_message=f"Impossible d'envoyer l'email de confirmation à {email}",
+            )
+        )
 
         logger.info("Inscription : %s → %s", email, event.title)
         return participant
