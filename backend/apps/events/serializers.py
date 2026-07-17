@@ -16,7 +16,7 @@ class EventListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            "id", "title", "event_type", "cover_image",
+            "id", "title", "event_type", "cover_image", "recap_image",
             "start_date", "end_date", "registration_deadline",
             "location", "online_link", "is_published",
             "participant_count", "max_participants", "is_full", "is_registered",
@@ -39,7 +39,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            "id", "title", "description", "event_type", "cover_image",
+            "id", "title", "description", "event_type", "cover_image", "recap_image",
             "start_date", "end_date", "registration_deadline",
             "location", "online_link", "max_participants",
             "is_published", "qr_code", "created_by_name", "created_at",
@@ -57,25 +57,39 @@ class EventWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            "title", "description", "event_type", "cover_image",
+            "title", "description", "event_type", "cover_image", "recap_image",
             "start_date", "end_date", "registration_deadline",
             "location", "online_link", "max_participants", "is_published",
         ]
 
 
 class EventParticipantSerializer(serializers.ModelSerializer):
-    user_id = serializers.IntegerField(source="user.id", read_only=True)
-    user_email = serializers.EmailField(source="user.email", read_only=True)
-    user_first_name = serializers.CharField(source="user.first_name", read_only=True)
-    user_last_name = serializers.CharField(source="user.last_name", read_only=True)
+    user_id = serializers.SerializerMethodField()
+    user_email = serializers.EmailField(source="email", read_only=True)
+    user_first_name = serializers.CharField(source="first_name", read_only=True)
+    user_last_name = serializers.CharField(source="last_name", read_only=True)
 
     class Meta:
         model = EventParticipant
         fields = [
             "id", "user_id", "user_email", "user_first_name", "user_last_name",
+            "nationality", "organisation", "profession",
             "created_at", "presence_validated", "attended_at", "motivation",
         ]
 
+    def get_user_id(self, obj) -> int | None:
+        return obj.user_id
+
 
 class RegisterForEventSerializer(serializers.Serializer):
-    motivation = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    nationality = serializers.CharField(max_length=100)
+    organisation = serializers.CharField(max_length=200)
+    profession = serializers.CharField(max_length=150)
+    motivation = serializers.CharField()
+
+
+class ParticipantLookupSerializer(serializers.Serializer):
+    email = serializers.EmailField()

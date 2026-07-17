@@ -1,27 +1,20 @@
 "use client";
 
 import { use } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { CalendarDays, MapPin, Users, Video, ArrowLeft, Check, ExternalLink, Clock } from "lucide-react";
 import { eventsService } from "@/services/events.service";
 import { formatDateTime, eventTypeLabel, eventTypeBadgeVariant, timeUntil } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
-import { useCurrentUser } from "@/hooks/useAuth";
+import { EventRegistrationForm } from "@/features/events/EventRegistrationForm";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const qc = useQueryClient();
-  const { data: user } = useCurrentUser();
 
   const { data: event, isLoading } = useQuery({
     queryKey: ["event", id],
     queryFn: () => eventsService.get(id).then((r) => r.data),
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: () => eventsService.register(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["event", id] }),
   });
 
   if (isLoading) {
@@ -47,8 +40,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const isPast = new Date(event.start_date) < new Date();
-  const canRegister = user && !event.is_registered && !event.is_full && !isPast;
+  const now = new Date();
+  const isPast = new Date(event.start_date) < now;
+  const isRegistrationOpen = event.registration_deadline
+    ? new Date(event.registration_deadline) >= now
+    : !isPast;
+  const displayImage = isPast ? event.recap_image ?? event.cover_image : event.cover_image;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,6 +71,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+        {/* Image */}
+        <div className="h-64 sm:h-80 rounded-2xl overflow-hidden mb-8 bg-gradient-to-br from-brand-navy to-brand-blue relative">
+          {displayImage ? (
+            <img src={displayImage} alt={event.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center opacity-10">
+              <CalendarDays size={120} className="text-white" />
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Contenu principal */}
           <div className="lg:col-span-2 space-y-8">
@@ -111,7 +119,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
             {/* Description */}
             <div className="bg-white rounded-2xl p-6 border border-gray-100">
-              <h2 className="font-semibold text-brand-navy mb-4">À propos de cet événement</h2>
+              <h2 className="font-semibold text-brand-navy mb-4">
+                {isPast ? "Résumé de l'événement" : "À propos de cet événement"}
+              </h2>
               <p className="text-gray-600 leading-relaxed whitespace-pre-line text-sm">{event.description}</p>
             </div>
 
@@ -157,23 +167,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="text-center py-2">
                   <p className="text-gray-500 text-sm">Cet événement est terminé</p>
                 </div>
-              ) : !user ? (
-                <div>
-                  <p className="text-sm text-gray-600 mb-4 text-center">Connectez-vous pour vous inscrire</p>
-                  <Link href="/login" className="block w-full text-center py-3 bg-brand-blue text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
-                    Se connecter
-                  </Link>
+              ) : !isRegistrationOpen ? (
+                <div className="text-center py-2">
+                  <p className="font-semibold text-gray-600">Inscriptions terminées</p>
+                  <p className="text-gray-400 text-sm mt-1">La date limite d&apos;inscription est dépassée</p>
                 </div>
               ) : (
-                <button
-                  onClick={() => registerMutation.mutate()}
-                  disabled={registerMutation.isPending}
-                  className="w-full py-3 bg-brand-blue text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-60"
-                >
-                  {registerMutation.isPending ? "Inscription..." : "S'inscrire à l'événement"}
-                </button>
+                <EventRegistrationForm eventId={id} />
               )}
-              {event.registration_deadline && !isPast && (
+              {event.registration_deadline && isRegistrationOpen && (
                 <p className="text-xs text-gray-400 text-center mt-3">
                   Clôture : {formatDateTime(event.registration_deadline)}
                 </p>

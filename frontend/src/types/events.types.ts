@@ -13,6 +13,7 @@ export interface Event {
   title: string;
   event_type: EventType;
   cover_image: string | null;
+  recap_image: string | null;
   start_date: string;
   end_date: string | null;
   registration_deadline: string | null;
@@ -44,16 +45,38 @@ export interface EventWritePayload {
   online_link?: string;
   max_participants?: number;
   is_published: boolean;
+  recap_image?: string;
 }
 
 export interface EventParticipant {
   id: number;
-  user_id: number;
+  user_id: number | null;
   user_email: string;
   user_first_name: string;
   user_last_name: string;
+  nationality: string;
+  organisation: string;
+  profession: string;
   created_at: string;
   presence_validated: boolean;
   attended_at: string | null;
   motivation: string;
+}
+
+export interface EventRegistrationPayload {
+  email: string;
+  first_name: string;
+  last_name: string;
+  nationality: string;
+  organisation: string;
+  profession: string;
+  motivation: string;
+}
+
+export interface ParticipantLookupResult {
+  first_name: string;
+  last_name: string;
+  nationality: string;
+  organisation: string;
+  profession: string;
 }

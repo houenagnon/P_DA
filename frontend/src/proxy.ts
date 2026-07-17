@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeJwt } from "jose";
+import { isPublicPath } from "@/lib/publicPaths";
 
-const PUBLIC_PATHS = ["/", "/events", "/about", "/blog", "/portfolio", "/members", "/join"];
 const AUTH_PATHS = ["/login", "/forgot-password", "/reset-password", "/verify-email"];
-
-function isPublic(pathname: string) {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
 
 function isAuthPage(pathname: string) {
   return AUTH_PATHS.some((p) => pathname.startsWith(p));
@@ -32,7 +28,7 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
-    isPublic(pathname) ||
+    isPublicPath(pathname) ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
     pathname.includes(".")

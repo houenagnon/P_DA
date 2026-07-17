@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import type { EventWritePayload } from "@/types/events.types";
+import type { EventWritePayload, EventRegistrationPayload, ParticipantLookupResult } from "@/types/events.types";
 
 export const eventsService = {
   list: (params?: Record<string, string>) =>
@@ -17,14 +17,17 @@ export const eventsService = {
   delete: (id: string) =>
     api.delete(`/events/${id}/`),
 
-  register: (id: string, motivation?: string) =>
-    api.post(`/events/${id}/register/`, { motivation: motivation ?? "" }),
+  register: (id: string, data: EventRegistrationPayload) =>
+    api.post(`/events/${id}/register/`, data),
+
+  lookupParticipant: (email: string) =>
+    api.get<ParticipantLookupResult>("/events/participants/lookup/", { params: { email } }),
 
   participants: (id: string) =>
     api.get(`/events/${id}/participants/`),
 
-  validatePresence: (eventId: string, userId: number) =>
-    api.post(`/events/${eventId}/validate/${userId}/`),
+  validatePresence: (eventId: string, participantId: number) =>
+    api.post(`/events/${eventId}/validate/${participantId}/`),
 
   export: (id: string) =>
     api.get(`/events/${id}/export/`, { responseType: "blob" }),

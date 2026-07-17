@@ -45,6 +45,10 @@ export default function EventsPage() {
 
   const all: Event[] = data?.results ?? data ?? [];
   const now = new Date();
+  const isRegistrationOpen = (e: Event) =>
+    e.registration_deadline
+      ? new Date(e.registration_deadline) >= now
+      : new Date(e.start_date) >= now;
 
   const filtered = all
     .filter((e) =>
@@ -127,16 +131,25 @@ export default function EventsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((event) => (
+              {filtered.map((event) => {
+                const eventIsPast = new Date(event.start_date) < now;
+                const displayImage = eventIsPast
+                  ? event.recap_image ?? event.cover_image
+                  : event.cover_image;
+                return (
                 <Link
                   key={event.id}
                   href={`/events/${event.id}`}
                   className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 group flex flex-col"
                 >
                   <div className="h-44 bg-gradient-to-br from-brand-navy to-brand-blue relative shrink-0">
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                      <CalendarDays size={100} className="text-white" />
-                    </div>
+                    {displayImage ? (
+                      <img src={displayImage} alt={event.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <CalendarDays size={100} className="text-white" />
+                      </div>
+                    )}
                     <div className="absolute top-3 left-3">
                       <Badge variant={eventTypeBadgeVariant(event.event_type)}>
                         {eventTypeLabel(event.event_type)}
@@ -171,12 +184,20 @@ export default function EventsPage() {
                         {event.max_participants && (
                           <span className="text-gray-400">/ {event.max_participants}</span>
                         )}
-                        {event.is_full && <Badge variant="red" className="ml-auto">Complet</Badge>}
+                        {event.is_full ? (
+                          <Badge variant="red" className="ml-auto">Complet</Badge>
+                        ) : (
+                          !isRegistrationOpen(event) &&
+                          !eventIsPast && (
+                            <Badge variant="gray" className="ml-auto">Inscriptions terminées</Badge>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

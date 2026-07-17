@@ -104,6 +104,11 @@ export default function EventParticipantsPage({ params }: { params: Promise<{ id
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-brand-navy text-sm">{fullName}</p>
                     <p className="text-gray-400 text-xs">{participant.user_email}</p>
+                    <p className="text-gray-400 text-xs">
+                      {participant.profession}
+                      {participant.organisation && ` · ${participant.organisation}`}
+                      {participant.nationality && ` · ${participant.nationality}`}
+                    </p>
                     {participant.motivation && (
                       <p className="text-gray-500 text-xs mt-0.5 line-clamp-1 italic">&ldquo;{participant.motivation}&rdquo;</p>
                     )}
@@ -117,7 +122,7 @@ export default function EventParticipantsPage({ params }: { params: Promise<{ id
                       </div>
                     ) : (
                       <button
-                        onClick={() => validatePresence.mutate(participant.user_id)}
+                        onClick={() => validatePresence.mutate(participant.id)}
                         disabled={validatePresence.isPending}
                         className="flex items-center gap-1.5 text-gray-400 hover:text-brand-blue text-xs font-medium transition-colors group"
                       >

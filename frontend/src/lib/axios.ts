@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { isPublicPath } from "./publicPaths";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -94,8 +95,7 @@ api.interceptors.response.use(
     if (!refreshToken) {
       setAccessToken(null);
       setRefreshToken(null);
-      if (typeof window !== "undefined") window.location.href = "/login";
-      return Promise.reject(error);
+      return handleAuthFailure(originalRequest, error);
     }
 
     if (isRefreshing) {
@@ -127,10 +127,25 @@ api.interceptors.response.use(
       setAccessToken(null);
       setRefreshToken(null);
       refreshQueue = [];
-      if (typeof window !== "undefined") window.location.href = "/login";
-      return Promise.reject(error);
+      return handleAuthFailure(originalRequest, error);
     } finally {
       isRefreshing = false;
     }
   },
 );
+
+// Sur une page publique, une session expirée ne doit pas bloquer la navigation :
+// on relance la requête sans jeton (anonyme) au lieu de forcer une redirection vers /login.
+function handleAuthFailure(
+  originalRequest: InternalAxiosRequestConfig & { _retry?: boolean },
+  error: AxiosError,
+) {
+  const onPublicPage = typeof window !== "undefined" && isPublicPath(window.location.pathname);
+  if (!onPublicPage) {
+    if (typeof window !== "undefined") window.location.href = "/login";
+    return Promise.reject(error);
+  }
+  originalRequest._retry = true;
+  delete originalRequest.headers.Authorization;
+  return api(originalRequest);
+}

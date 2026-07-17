@@ -21,6 +21,9 @@ class Event(TimestampMixin):
     description = models.TextField(verbose_name="Description")
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, verbose_name="Type")
     cover_image = models.ImageField(upload_to="events/covers/", null=True, blank=True)
+    recap_image = models.ImageField(
+        upload_to="events/recap/", null=True, blank=True, verbose_name="Image récapitulative"
+    )
     start_date = models.DateTimeField(verbose_name="Date de début")
     end_date = models.DateTimeField(null=True, blank=True, verbose_name="Date de fin")
     registration_deadline = models.DateTimeField(null=True, blank=True, verbose_name="Clôture des inscriptions")
@@ -56,20 +59,26 @@ class Event(TimestampMixin):
 class EventParticipant(TimestampMixin):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="participants")
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name="event_participations",
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="event_participations",
     )
+    email = models.EmailField()
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+    nationality = models.CharField(max_length=100)
+    organisation = models.CharField(max_length=200)
+    profession = models.CharField(max_length=150)
     attended_at = models.DateTimeField(null=True, blank=True)
     presence_validated = models.BooleanField(default=False)
-    motivation = models.TextField(blank=True)
+    motivation = models.TextField()
 
     class Meta:
-        unique_together = [("event", "user")]
+        unique_together = [("event", "email")]
         verbose_name = "Participant"
         verbose_name_plural = "Participants"
 
     def __str__(self):
-        return f"{self.user.full_name} → {self.event.title}"
+        return f"{self.email} → {self.event.title}"
 
 
 class EventSpeaker(models.Model):

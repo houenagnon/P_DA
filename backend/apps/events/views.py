@@ -12,9 +12,12 @@ from .filters import EventFilter
 from .models import Event, EventParticipant
 from .serializers import (
     EventListSerializer, EventDetailSerializer, EventWriteSerializer,
-    EventParticipantSerializer, RegisterForEventSerializer,
+    EventParticipantSerializer, RegisterForEventSerializer, ParticipantLookupSerializer,
 )
-from .services import register_participant, validate_presence, generate_qr_code, export_participants_excel
+from .services import (
+    register_participant, validate_presence, generate_qr_code,
+    export_participants_excel, find_latest_participant_info,
+)
 
 
 class EventViewSet(ModelViewSet):
@@ -47,32 +50,52 @@ class EventViewSet(ModelViewSet):
         event = serializer.save(created_by=self.request.user)
         generate_qr_code(event)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=["post"], permission_classes=[AllowAny])
     def register(self, request, pk=None):
         event = self.get_object()
         serializer = RegisterForEventSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        user = request.user if request.user.is_authenticated else None
         participant = register_participant(
-            event, request.user,
-            motivation=serializer.validated_data.get("motivation", ""),
+            event, user,
+            email=serializer.validated_data["email"],
+            first_name=serializer.validated_data["first_name"],
+            last_name=serializer.validated_data["last_name"],
+            nationality=serializer.validated_data["nationality"],
+            organisation=serializer.validated_data["organisation"],
+            profession=serializer.validated_data["profession"],
+            motivation=serializer.validated_data["motivation"],
         )
         return Response(
             EventParticipantSerializer(participant).data,
             status=status.HTTP_201_CREATED,
         )
 
+    @action(detail=False, methods=["get"], url_path="participants/lookup", permission_classes=[AllowAny])
+    def participant_lookup(self, request):
+        serializer = ParticipantLookupSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        participant = find_latest_participant_info(serializer.validated_data["email"])
+        if participant is None:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({
+            "first_name": participant.first_name,
+            "last_name": participant.last_name,
+            "nationality": participant.nationality,
+            "organisation": participant.organisation,
+            "profession": participant.profession,
+        })
+
     @action(detail=True, methods=["post"],
-            url_path="validate/(?P<user_id>[^/.]+)",
+            url_path="validate/(?P<participant_id>[^/.]+)",
             permission_classes=[IsAuthenticated, IsAdminOrBureau])
-    def validate_presence(self, request, pk=None, user_id=None):
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+    def validate_presence(self, request, pk=None, participant_id=None):
         event = self.get_object()
         try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({"detail": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
-        participant = validate_presence(event, user)
+            participant = event.participants.get(pk=participant_id)
+        except EventParticipant.DoesNotExist:
+            return Response({"detail": "Participant introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        participant = validate_presence(participant)
         return Response(EventParticipantSerializer(participant).data)
 
     @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated, IsAdminOrBureau])
