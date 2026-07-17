@@ -170,7 +170,12 @@ function ExperiencesSection({ profile }: { profile: MemberProfile | undefined })
   const [form, setForm] = useState({ title: "", company: "", start_date: "", end_date: "", is_current: false, description: "" });
 
   const createExp = useMutation({
-    mutationFn: (data: typeof form) => membersService.experiences.create(data as Omit<MemberExperience, "id">),
+    mutationFn: (data: typeof form) =>
+      membersService.experiences.create({
+        ...data,
+        // Un DateField Django rejette "" (attend une date valide ou null)
+        end_date: data.is_current || !data.end_date ? null : data.end_date,
+      } as Omit<MemberExperience, "id">),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["my-profile"] }); setAdding(false); setForm({ title: "", company: "", start_date: "", end_date: "", is_current: false, description: "" }); },
   });
   const deleteExp = useMutation({
