@@ -63,9 +63,9 @@ def accept_candidature(candidature, reviewed_by) -> "Candidature":
         )
 
     if not user.email_verified:
-        # Tant que l'email n'est pas vérifié, l'accès aux fonctionnalités est bloqué
-        # (VerifiedJWTAuthentication) — on envoie le lien de vérification dès
-        # l'acceptation plutôt que d'attendre une première tentative de connexion.
+        # L'accès aux fonctionnalités n'est plus conditionné à la vérification,
+        # mais on envoie quand même le lien dès l'acceptation (utile pour les
+        # emails à venir qui pourraient s'appuyer sur ce statut).
         from apps.accounts.services import send_verification_email_async
         send_verification_email_async(user)
 
