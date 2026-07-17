@@ -90,6 +90,12 @@ class RegisterForEventSerializer(serializers.Serializer):
     profession = serializers.CharField(max_length=150)
     motivation = serializers.CharField()
 
+    def validate_email(self, value: str) -> str:
+        return value.strip().lower()
+
 
 class ParticipantLookupSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+    def validate_email(self, value: str) -> str:
+        return value.strip().lower()
