@@ -1,12 +1,12 @@
 import { api } from "@/lib/axios";
-import type { EventWritePayload, EventRegistrationPayload, ParticipantLookupResult } from "@/types/events.types";
+import type { EventDetail, EventWritePayload, EventRegistrationPayload, ParticipantLookupResult } from "@/types/events.types";
 
 export const eventsService = {
   list: (params?: Record<string, string>) =>
     api.get("/events/", { params }),
 
   get: (id: string) =>
-    api.get(`/events/${id}/`),
+    api.get<EventDetail>(`/events/${id}/`),
 
   create: (data: EventWritePayload | FormData) =>
     api.post("/events/", data, {

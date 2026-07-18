@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { eventsService } from "@/services/events.service";
-import { formatDateTime, eventTypeLabel } from "@/lib/utils";
+import { formatDateTime, eventTypeLabel, toDatetimeLocalValue } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
-import { Plus, CalendarDays, Edit2, Trash2, Users, Eye, EyeOff, X, Check, Download } from "lucide-react";
+import { Plus, CalendarDays, Edit2, Trash2, Users, Eye, EyeOff, X, Download } from "lucide-react";
 import { isAdmin, isBureau } from "@/types/auth.types";
 import Link from "next/link";
-import type { Event, EventWritePayload, EventType } from "@/types/events.types";
+import type { Event, EventDetail, EventWritePayload, EventType } from "@/types/events.types";
 
 const EVENT_TYPES: EventType[] = ["webinaire", "conference", "atelier", "hackathon", "meetup", "formation", "autre"];
 
@@ -19,11 +19,26 @@ const emptyForm: EventWritePayload = {
   max_participants: undefined, is_published: false,
 };
 
+function eventToForm(event: EventDetail): EventWritePayload {
+  return {
+    title: event.title,
+    description: event.description,
+    event_type: event.event_type,
+    start_date: toDatetimeLocalValue(event.start_date),
+    end_date: toDatetimeLocalValue(event.end_date),
+    registration_deadline: toDatetimeLocalValue(event.registration_deadline),
+    location: event.location,
+    online_link: event.online_link,
+    max_participants: event.max_participants ?? undefined,
+    is_published: event.is_published,
+  };
+}
+
 export default function EventsManagePage() {
   const { data: user } = useCurrentUser();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventDetail | null>(null);
   const [form, setForm] = useState<EventWritePayload>(emptyForm);
 
   const canManage = user && (isAdmin(user.role) || isBureau(user.role));
@@ -35,12 +50,12 @@ export default function EventsManagePage() {
 
   const createEvent = useMutation({
     mutationFn: (data: EventWritePayload | FormData) => eventsService.create(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["events"] }); setShowForm(false); setForm(emptyForm); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["events"] }); closeForm(); },
   });
 
   const updateEvent = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<EventWritePayload> }) => eventsService.update(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["events"] }); setEditingId(null); },
+    mutationFn: ({ id, data }: { id: string; data: Partial<EventWritePayload> | FormData }) => eventsService.update(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["events"] }); },
   });
 
   const deleteEvent = useMutation({
@@ -48,9 +63,36 @@ export default function EventsManagePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["events"] }),
   });
 
-  const togglePublish = (event: Event) => {
+  function closeForm() {
+    setShowForm(false);
+    setEditingEvent(null);
+    setForm(emptyForm);
+  }
+
+  function openCreateForm() {
+    setEditingEvent(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  }
+
+  async function openEditForm(eventId: string) {
+    const { data: full } = await eventsService.get(eventId);
+    setEditingEvent(full);
+    setForm(eventToForm(full));
+    setShowForm(true);
+  }
+
+  function handleFormSubmit(payload: EventWritePayload | FormData) {
+    if (editingEvent) {
+      updateEvent.mutate({ id: editingEvent.id, data: payload }, { onSuccess: closeForm });
+    } else {
+      createEvent.mutate(payload);
+    }
+  }
+
+  function togglePublish(event: Event) {
     updateEvent.mutate({ id: event.id, data: { is_published: !event.is_published } });
-  };
+  }
 
   const all: Event[] = data?.results ?? data ?? [];
   const now = new Date();
@@ -65,20 +107,31 @@ export default function EventsManagePage() {
           <p className="text-gray-500 text-sm mt-1">{all.length} événement{all.length > 1 ? "s" : ""} au total</p>
         </div>
         {canManage && (
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+          <button onClick={openCreateForm} className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
             <Plus size={16} /> Créer un événement
           </button>
         )}
       </div>
 
-      {/* Formulaire création */}
+      {/* Formulaire création / édition */}
       {showForm && (
         <div className="bg-white rounded-2xl border border-brand-blue/20 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-brand-navy">Nouvel événement</h2>
-            <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            <h2 className="font-semibold text-brand-navy">
+              {editingEvent ? `Modifier « ${editingEvent.title} »` : "Nouvel événement"}
+            </h2>
+            <button onClick={closeForm} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
           </div>
-          <EventForm form={form} setForm={setForm} onSubmit={(payload) => createEvent.mutate(payload)} isPending={createEvent.isPending} />
+          <EventForm
+            form={form}
+            setForm={setForm}
+            onSubmit={handleFormSubmit}
+            isPending={editingEvent ? updateEvent.isPending : createEvent.isPending}
+            submitLabel={editingEvent ? "Enregistrer les modifications" : "Créer l'événement"}
+            pendingLabel={editingEvent ? "Enregistrement..." : "Création..."}
+            existingCoverImage={editingEvent?.cover_image ?? null}
+            existingRecapImage={editingEvent?.recap_image ?? null}
+          />
         </div>
       )}
 
@@ -94,8 +147,7 @@ export default function EventsManagePage() {
               <EventRow key={event.id} event={event} canManage={!!canManage}
                 onTogglePublish={() => togglePublish(event)}
                 onDelete={() => { if (confirm("Supprimer cet événement ?")) deleteEvent.mutate(event.id); }}
-                editingId={editingId} setEditingId={setEditingId}
-                onUpdate={(data) => updateEvent.mutate({ id: event.id, data })}
+                onEdit={() => openEditForm(event.id)}
               />
             ))}
           </Section>
@@ -104,8 +156,7 @@ export default function EventsManagePage() {
               <EventRow key={event.id} event={event} canManage={!!canManage}
                 onTogglePublish={() => togglePublish(event)}
                 onDelete={() => { if (confirm("Supprimer cet événement ?")) deleteEvent.mutate(event.id); }}
-                editingId={editingId} setEditingId={setEditingId}
-                onUpdate={(data) => updateEvent.mutate({ id: event.id, data })}
+                onEdit={() => openEditForm(event.id)}
               />
             ))}
           </Section>
@@ -124,14 +175,10 @@ function Section({ title, count, children }: { title: string; count: number; chi
   );
 }
 
-function EventRow({ event, canManage, onTogglePublish, onDelete, editingId, setEditingId, onUpdate }: {
+function EventRow({ event, canManage, onTogglePublish, onDelete, onEdit }: {
   event: Event; canManage: boolean;
-  onTogglePublish: () => void; onDelete: () => void;
-  editingId: string | null; setEditingId: (id: string | null) => void;
-  onUpdate: (data: Partial<EventWritePayload>) => void;
+  onTogglePublish: () => void; onDelete: () => void; onEdit: () => void;
 }) {
-  const [editTitle, setEditTitle] = useState(event.title);
-
   function handleExport() {
     eventsService.export(event.id).then((response) => {
       const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]));
@@ -149,15 +196,7 @@ function EventRow({ event, canManage, onTogglePublish, onDelete, editingId, setE
         <CalendarDays size={18} className="text-brand-navy" />
       </div>
       <div className="flex-1 min-w-0">
-        {editingId === event.id ? (
-          <div className="flex items-center gap-2">
-            <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="flex-1 border border-brand-blue rounded-lg px-2 py-1 text-sm focus:outline-none" />
-            <button onClick={() => { onUpdate({ title: editTitle }); setEditingId(null); }} className="text-green-500 hover:text-green-600"><Check size={16} /></button>
-            <button onClick={() => setEditingId(null)} className="text-red-400 hover:text-red-600"><X size={16} /></button>
-          </div>
-        ) : (
-          <p className="font-medium text-brand-navy text-sm truncate">{event.title}</p>
-        )}
+        <p className="font-medium text-brand-navy text-sm truncate">{event.title}</p>
         <div className="flex items-center flex-wrap gap-2 mt-1">
           <Badge variant={event.is_published ? "green" : "gray"}>{event.is_published ? "Publié" : "Brouillon"}</Badge>
           <span className="text-xs text-gray-400">{eventTypeLabel(event.event_type)}</span>
@@ -176,8 +215,8 @@ function EventRow({ event, canManage, onTogglePublish, onDelete, editingId, setE
           <button onClick={onTogglePublish} title={event.is_published ? "Dépublier" : "Publier"} className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50">
             {event.is_published ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
-          <button onClick={() => setEditingId(event.id)} className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50"><Edit2 size={16} /></button>
-          <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50"><Trash2 size={16} /></button>
+          <button onClick={onEdit} title="Modifier" className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50"><Edit2 size={16} /></button>
+          <button onClick={onDelete} title="Supprimer" className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50"><Trash2 size={16} /></button>
         </>}
       </div>
     </div>
@@ -186,11 +225,15 @@ function EventRow({ event, canManage, onTogglePublish, onDelete, editingId, setE
 
 const fileInputCls = "w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand-blue/10 file:text-brand-blue file:text-sm file:font-medium hover:file:bg-brand-blue/20 border border-gray-200 rounded-xl";
 
-function EventForm({ form, setForm, onSubmit, isPending }: {
+function EventForm({ form, setForm, onSubmit, isPending, submitLabel, pendingLabel, existingCoverImage, existingRecapImage }: {
   form: EventWritePayload;
   setForm: React.Dispatch<React.SetStateAction<EventWritePayload>>;
   onSubmit: (payload: EventWritePayload | FormData) => void;
   isPending: boolean;
+  submitLabel: string;
+  pendingLabel: string;
+  existingCoverImage: string | null;
+  existingRecapImage: string | null;
 }) {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [recapFile, setRecapFile] = useState<File | null>(null);
@@ -219,14 +262,21 @@ function EventForm({ form, setForm, onSubmit, isPending }: {
       <input type="number" placeholder="Participants max" value={form.max_participants ?? ""} onChange={e => setForm(f => ({...f, max_participants: e.target.value ? parseInt(e.target.value) : undefined}))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
       <div><label className="block text-xs text-gray-500 mb-1">Date de début *</label><input type="datetime-local" value={form.start_date} onChange={e => setForm(f => ({...f, start_date: e.target.value}))} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" /></div>
       <div><label className="block text-xs text-gray-500 mb-1">Date de fin</label><input type="datetime-local" value={form.end_date ?? ""} onChange={e => setForm(f => ({...f, end_date: e.target.value}))} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" /></div>
+      <div><label className="block text-xs text-gray-500 mb-1">Clôture des inscriptions</label><input type="datetime-local" value={form.registration_deadline ?? ""} onChange={e => setForm(f => ({...f, registration_deadline: e.target.value}))} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" /></div>
       <input placeholder="Lieu" value={form.location ?? ""} onChange={e => setForm(f => ({...f, location: e.target.value}))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
-      <input type="url" placeholder="Lien en ligne" value={form.online_link ?? ""} onChange={e => setForm(f => ({...f, online_link: e.target.value}))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+      <input type="url" placeholder="Lien en ligne" value={form.online_link ?? ""} onChange={e => setForm(f => ({...f, online_link: e.target.value}))} className="sm:col-span-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Image de couverture</label>
+        <label className="block text-xs text-gray-500 mb-1">Image de couverture (avant l&apos;évènement)</label>
+        {existingCoverImage && !coverFile && (
+          <img src={existingCoverImage} alt="Couverture actuelle" className="w-full h-24 object-cover rounded-lg mb-2 border border-gray-200" />
+        )}
         <input type="file" accept="image/*" onChange={e => setCoverFile(e.target.files?.[0] ?? null)} className={fileInputCls} />
       </div>
       <div>
         <label className="block text-xs text-gray-500 mb-1">Image récapitulative (après l&apos;évènement)</label>
+        {existingRecapImage && !recapFile && (
+          <img src={existingRecapImage} alt="Récapitulatif actuel" className="w-full h-24 object-cover rounded-lg mb-2 border border-gray-200" />
+        )}
         <input type="file" accept="image/*" onChange={e => setRecapFile(e.target.files?.[0] ?? null)} className={fileInputCls} />
       </div>
       <label className="flex items-center gap-2 text-sm text-gray-600 sm:col-span-2">
@@ -235,7 +285,7 @@ function EventForm({ form, setForm, onSubmit, isPending }: {
       </label>
       <div className="sm:col-span-2 flex justify-end">
         <button onClick={handleSubmit} disabled={isPending || !form.title || !form.description || !form.start_date} className="px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
-          {isPending ? "Création..." : "Créer l'événement"}
+          {isPending ? pendingLabel : submitLabel}
         </button>
       </div>
     </div>

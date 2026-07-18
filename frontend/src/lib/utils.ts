@@ -21,6 +21,13 @@ export function formatDateTime(dateStr: string): string {
   });
 }
 
+export function toDatetimeLocalValue(isoString?: string | null): string {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function avatarUrl(name: string, size = 80): string {
   const encoded = encodeURIComponent(name);
   return `https://ui-avatars.com/api/?name=${encoded}&size=${size}&background=0972E1&color=fff&bold=true&format=svg`;
