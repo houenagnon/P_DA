@@ -34,7 +34,7 @@ export default function EventsManagePage() {
   });
 
   const createEvent = useMutation({
-    mutationFn: (data: EventWritePayload) => eventsService.create(data),
+    mutationFn: (data: EventWritePayload | FormData) => eventsService.create(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["events"] }); setShowForm(false); setForm(emptyForm); },
   });
 
@@ -78,7 +78,7 @@ export default function EventsManagePage() {
             <h2 className="font-semibold text-brand-navy">Nouvel événement</h2>
             <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
           </div>
-          <EventForm form={form} setForm={setForm} onSubmit={() => createEvent.mutate(form)} isPending={createEvent.isPending} />
+          <EventForm form={form} setForm={setForm} onSubmit={(payload) => createEvent.mutate(payload)} isPending={createEvent.isPending} />
         </div>
       )}
 
@@ -184,12 +184,31 @@ function EventRow({ event, canManage, onTogglePublish, onDelete, editingId, setE
   );
 }
 
+const fileInputCls = "w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand-blue/10 file:text-brand-blue file:text-sm file:font-medium hover:file:bg-brand-blue/20 border border-gray-200 rounded-xl";
+
 function EventForm({ form, setForm, onSubmit, isPending }: {
   form: EventWritePayload;
   setForm: React.Dispatch<React.SetStateAction<EventWritePayload>>;
-  onSubmit: () => void;
+  onSubmit: (payload: EventWritePayload | FormData) => void;
   isPending: boolean;
 }) {
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [recapFile, setRecapFile] = useState<File | null>(null);
+
+  function handleSubmit() {
+    if (!coverFile && !recapFile) {
+      onSubmit(form);
+      return;
+    }
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") formData.append(key, String(value));
+    });
+    if (coverFile) formData.append("cover_image", coverFile);
+    if (recapFile) formData.append("recap_image", recapFile);
+    onSubmit(formData);
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <input placeholder="Titre *" value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))} className="sm:col-span-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
@@ -202,12 +221,20 @@ function EventForm({ form, setForm, onSubmit, isPending }: {
       <div><label className="block text-xs text-gray-500 mb-1">Date de fin</label><input type="datetime-local" value={form.end_date ?? ""} onChange={e => setForm(f => ({...f, end_date: e.target.value}))} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" /></div>
       <input placeholder="Lieu" value={form.location ?? ""} onChange={e => setForm(f => ({...f, location: e.target.value}))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
       <input type="url" placeholder="Lien en ligne" value={form.online_link ?? ""} onChange={e => setForm(f => ({...f, online_link: e.target.value}))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Image de couverture</label>
+        <input type="file" accept="image/*" onChange={e => setCoverFile(e.target.files?.[0] ?? null)} className={fileInputCls} />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Image récapitulative (après l&apos;évènement)</label>
+        <input type="file" accept="image/*" onChange={e => setRecapFile(e.target.files?.[0] ?? null)} className={fileInputCls} />
+      </div>
       <label className="flex items-center gap-2 text-sm text-gray-600 sm:col-span-2">
         <input type="checkbox" checked={form.is_published} onChange={e => setForm(f => ({...f, is_published: e.target.checked}))} className="rounded" />
         Publier immédiatement
       </label>
       <div className="sm:col-span-2 flex justify-end">
-        <button onClick={onSubmit} disabled={isPending || !form.title || !form.description || !form.start_date} className="px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+        <button onClick={handleSubmit} disabled={isPending || !form.title || !form.description || !form.start_date} className="px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
           {isPending ? "Création..." : "Créer l'événement"}
         </button>
       </div>

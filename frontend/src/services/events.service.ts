@@ -8,11 +8,15 @@ export const eventsService = {
   get: (id: string) =>
     api.get(`/events/${id}/`),
 
-  create: (data: EventWritePayload) =>
-    api.post("/events/", data),
+  create: (data: EventWritePayload | FormData) =>
+    api.post("/events/", data, {
+      headers: data instanceof FormData ? { "Content-Type": undefined } : undefined,
+    }),
 
-  update: (id: string, data: Partial<EventWritePayload>) =>
-    api.patch(`/events/${id}/`, data),
+  update: (id: string, data: Partial<EventWritePayload> | FormData) =>
+    api.patch(`/events/${id}/`, data, {
+      headers: data instanceof FormData ? { "Content-Type": undefined } : undefined,
+    }),
 
   delete: (id: string) =>
     api.delete(`/events/${id}/`),
