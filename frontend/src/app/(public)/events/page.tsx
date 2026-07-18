@@ -144,7 +144,7 @@ export default function EventsPage() {
                 >
                   <div className="h-44 bg-gradient-to-br from-brand-navy to-brand-blue relative shrink-0">
                     {displayImage ? (
-                      <img src={displayImage} alt={event.title} className="w-full h-full object-cover" />
+                      <img src={displayImage} alt={event.title} className="w-full h-full object-contain" />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center opacity-10">
                         <CalendarDays size={100} className="text-white" />

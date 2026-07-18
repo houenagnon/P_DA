@@ -74,7 +74,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         {/* Image */}
         <div className="h-64 sm:h-80 rounded-2xl overflow-hidden mb-8 bg-gradient-to-br from-brand-navy to-brand-blue relative">
           {displayImage ? (
-            <img src={displayImage} alt={event.title} className="w-full h-full object-cover" />
+            <img src={displayImage} alt={event.title} className="w-full h-full object-contain" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center opacity-10">
               <CalendarDays size={120} className="text-white" />
