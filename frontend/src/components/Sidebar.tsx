@@ -12,6 +12,7 @@ const allNavItems = [
   { href: "/manage/events", label: "Événements", icon: CalendarDays, roles: "all" },
   { href: "/manage/members", label: "Membres", icon: Users, roles: "bureau" },
   { href: "/manage/departments", label: "Départements", icon: Building2, roles: "bureau" },
+  { href: "/my-department", label: "Mon département", icon: Building2, roles: "all" },
   { href: "/memberships", label: "Candidatures", icon: FileText, roles: "admin_president" },
   { href: "/member-card", label: "Ma carte", icon: CreditCard, roles: "all" },
 ];

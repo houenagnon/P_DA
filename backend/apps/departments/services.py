@@ -3,6 +3,57 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.common.background import fire_and_forget
+from apps.common.permissions import BUREAU_ROLES
+
+
+def can_manage_department(user, department) -> bool:
+    """Admin/Bureau gèrent tous les départements ; le lead/co-lead ne gère que
+    le sien (membres, annonces, séances, tâches) — jamais son nom/description/
+    lead/co-lead, réservés à Admin/Bureau (voir get_permissions de la vue)."""
+    if user.role == "admin" or user.role in BUREAU_ROLES:
+        return True
+    return department.lead_id == user.id or department.co_lead_id == user.id
+
+
+def is_current_department_member(user, department) -> bool:
+    today = timezone.now().date()
+    return department.memberships.filter(user=user).filter(
+        Q(end_date__isnull=True) | Q(end_date__gte=today)
+    ).exists()
+
+
+def get_current_membership(user):
+    from .models import DepartmentMembership
+
+    today = timezone.now().date()
+    return (
+        DepartmentMembership.objects
+        .filter(user=user)
+        .filter(Q(end_date__isnull=True) | Q(end_date__gte=today))
+        .select_related("department")
+        .order_by("-start_date")
+        .first()
+    )
+
+
+def get_my_department_context(user):
+    """Le département à afficher sur « Mon département » : sa propre adhésion en
+    cours si elle existe, sinon le département qu'il dirige (lead/co-lead) même
+    sans ligne d'adhésion formelle — nommer un lead ne l'inscrit pas forcément
+    comme membre daté. Renvoie (department, since) où since peut être None."""
+    from .models import Department
+
+    membership = get_current_membership(user)
+    if membership:
+        return membership.department, membership.start_date
+
+    led = Department.objects.filter(Q(lead=user) | Q(co_lead=user)).first()
+    if led:
+        return led, None
+
+    return None, None
+
 
 def _sync_lead_roles(department) -> None:
     """Nommer quelqu'un lead/co-lead lui attribue automatiquement le rôle
@@ -17,32 +68,122 @@ def _sync_lead_roles(department) -> None:
 
 
 def save_department(serializer) -> "Department":
+    from .tasks import send_lead_appointed_email
+
+    old_lead_id = serializer.instance.lead_id if serializer.instance else None
+    old_co_lead_id = serializer.instance.co_lead_id if serializer.instance else None
+
     department = serializer.save()
     _sync_lead_roles(department)
+
+    if department.lead_id and department.lead_id != old_lead_id:
+        fire_and_forget(
+            send_lead_appointed_email.delay, department.id, department.lead_id, "lead",
+            error_message=f"Impossible de notifier la nomination lead du département {department.id}",
+        )
+    if department.co_lead_id and department.co_lead_id != old_co_lead_id:
+        fire_and_forget(
+            send_lead_appointed_email.delay, department.id, department.co_lead_id, "co_lead",
+            error_message=f"Impossible de notifier la nomination co-lead du département {department.id}",
+        )
     return department
 
 
 def add_member(department, user, start_date, end_date=None) -> "DepartmentMembership":
     from .models import DepartmentMembership
+    from .tasks import send_member_added_email
 
     with transaction.atomic():
         today = timezone.now().date()
         # Un membre n'a qu'une seule adhésion active à la fois, tous départements confondus.
+        # Fin automatique silencieuse (pas d'email) — seule une fin explicite est notifiée.
         active_memberships = DepartmentMembership.objects.select_for_update().filter(
             user=user,
         ).filter(Q(end_date__isnull=True) | Q(end_date__gte=today))
         for membership in active_memberships:
+            if start_date < membership.start_date:
+                raise ValidationError(
+                    "La date de début ne peut pas précéder le début d'une adhésion "
+                    "déjà en cours pour ce membre."
+                )
             membership.end_date = start_date
             membership.save(update_fields=["end_date"])
 
-        return DepartmentMembership.objects.create(
+        membership = DepartmentMembership.objects.create(
             department=department, user=user, start_date=start_date, end_date=end_date,
         )
 
+    fire_and_forget(
+        send_member_added_email.delay, membership.id,
+        error_message=f"Impossible de notifier l'ajout de {user.email} au département {department.id}",
+    )
+    return membership
+
 
 def end_membership(membership, end_date=None) -> "DepartmentMembership":
+    from .tasks import send_membership_ended_email
+
     membership.end_date = end_date or timezone.now().date()
     if membership.end_date < membership.start_date:
         raise ValidationError("La date de fin ne peut pas précéder la date de début.")
     membership.save(update_fields=["end_date"])
+
+    fire_and_forget(
+        send_membership_ended_email.delay, membership.id,
+        error_message=f"Impossible de notifier la fin d'adhésion {membership.id}",
+    )
     return membership
+
+
+def create_announcement(department, author, title, content) -> "DepartmentAnnouncement":
+    from .models import DepartmentAnnouncement
+    from .tasks import send_announcement_email
+
+    announcement = DepartmentAnnouncement.objects.create(
+        department=department, author=author, title=title, content=content,
+    )
+    fire_and_forget(
+        send_announcement_email.delay, announcement.id,
+        error_message=f"Impossible de notifier l'annonce {announcement.id}",
+    )
+    return announcement
+
+
+def create_session(department, created_by, date, theme="") -> "DepartmentSession":
+    from .models import DepartmentSession
+
+    return DepartmentSession.objects.create(
+        department=department, created_by=created_by, date=date, theme=theme,
+    )
+
+
+def submit_session_report(session, report, present_user_ids) -> "DepartmentSession":
+    session.report = report
+    session.save(update_fields=["report"])
+    session.present_members.set(present_user_ids)
+    return session
+
+
+def send_session_reminder(session) -> None:
+    from .tasks import send_session_reminder_email
+
+    fire_and_forget(
+        send_session_reminder_email.delay, session.id,
+        error_message=f"Impossible d'envoyer le rappel de la séance {session.id}",
+    )
+
+
+def create_task(department, created_by, title, description="", assigned_to=None, due_date=None, status="todo") -> "DepartmentTask":
+    from .models import DepartmentTask
+    from .tasks import send_task_assigned_email
+
+    task = DepartmentTask.objects.create(
+        department=department, created_by=created_by, title=title, description=description,
+        assigned_to=assigned_to, due_date=due_date, status=status,
+    )
+    if assigned_to:
+        fire_and_forget(
+            send_task_assigned_email.delay, task.id,
+            error_message=f"Impossible de notifier l'assignation de la tâche {task.id}",
+        )
+    return task

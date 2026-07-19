@@ -8,6 +8,7 @@ import { departmentsService } from "@/services/departments.service";
 import { membersService } from "@/services/members.service";
 import { isAdmin, isBureau } from "@/types/auth.types";
 import { Building2, Plus, Users, Edit2, Trash2, X, Crown, ShieldHalf } from "lucide-react";
+import { MemberSearchSelect } from "@/components/MemberSearchSelect";
 import type { Department, DepartmentWritePayload } from "@/types/departments.types";
 import type { MemberListItem } from "@/types/members.types";
 
@@ -121,25 +122,19 @@ export default function DepartmentsManagePage() {
             />
             <div>
               <label className="block text-xs text-gray-500 mb-1">Responsable (lead)</label>
-              <select
-                value={form.lead ?? ""}
-                onChange={e => setForm(f => ({ ...f, lead: e.target.value ? Number(e.target.value) : null }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
-              >
-                <option value="">Aucun</option>
-                {members.map(m => <option key={m.user_id} value={m.user_id}>{m.first_name} {m.last_name}</option>)}
-              </select>
+              <MemberSearchSelect
+                members={members}
+                value={form.lead ?? null}
+                onChange={(userId) => setForm(f => ({ ...f, lead: userId }))}
+              />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Co-responsable (co-lead)</label>
-              <select
-                value={form.co_lead ?? ""}
-                onChange={e => setForm(f => ({ ...f, co_lead: e.target.value ? Number(e.target.value) : null }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
-              >
-                <option value="">Aucun</option>
-                {members.map(m => <option key={m.user_id} value={m.user_id}>{m.first_name} {m.last_name}</option>)}
-              </select>
+              <MemberSearchSelect
+                members={members}
+                value={form.co_lead ?? null}
+                onChange={(userId) => setForm(f => ({ ...f, co_lead: userId }))}
+              />
             </div>
             <p className="sm:col-span-2 text-xs text-gray-400">
               Désigner un lead ou co-lead attribue automatiquement le rôle « Responsable de département » à cette personne.

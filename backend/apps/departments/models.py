@@ -50,3 +50,55 @@ class DepartmentAnnouncement(TimestampMixin):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class DepartmentSession(TimestampMixin):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="sessions")
+    date = models.DateField(verbose_name="Date de la séance")
+    theme = models.CharField(max_length=300, blank=True, verbose_name="Thème")
+    report = models.TextField(blank=True, verbose_name="Compte-rendu")
+    present_members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="attended_department_sessions",
+        verbose_name="Présents",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "Séance de département"
+        verbose_name_plural = "Séances de département"
+        ordering = ["-date"]
+
+    def __str__(self):
+        return f"{self.department.name} — {self.date}"
+
+
+class DepartmentTask(TimestampMixin):
+    STATUS_CHOICES = [
+        ("todo", "À faire"),
+        ("in_progress", "En cours"),
+        ("done", "Terminée"),
+        ("blocked", "Bloquée"),
+    ]
+
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="tasks")
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="department_tasks",
+    )
+    due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="todo")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "Tâche de département"
+        verbose_name_plural = "Tâches de département"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
