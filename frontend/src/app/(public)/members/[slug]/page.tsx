@@ -4,7 +4,7 @@ import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersService } from "@/services/members.service";
 import { avatarUrl, formatDate, roleLabel } from "@/lib/utils";
-import { ExternalLink, MapPin, Award, Briefcase, Calendar } from "lucide-react";
+import { ExternalLink, MapPin, Award, Briefcase, Calendar, Building2 } from "lucide-react";
 import Link from "next/link";
 import type { MemberExperience, MemberCertification } from "@/types/members.types";
 
@@ -53,6 +53,12 @@ export default function MemberProfilePage({ params }: { params: Promise<{ slug: 
               <p className="text-white/50 text-sm mt-1 flex items-center justify-center sm:justify-start gap-1">
                 <MapPin size={13} /> Data Afrique Hub
               </p>
+              {profile.department && (
+                <p className="text-brand-orange text-sm mt-1 flex items-center justify-center sm:justify-start gap-1.5">
+                  <Building2 size={13} /> {profile.department.name}
+                  <span className="text-white/40 font-normal">depuis {formatDate(profile.department.start_date)}</span>
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-2 mt-4 justify-center sm:justify-start">
                 {profile.github_url && (

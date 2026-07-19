@@ -1,0 +1,221 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { departmentsService } from "@/services/departments.service";
+import { membersService } from "@/services/members.service";
+import { isAdmin, isBureau } from "@/types/auth.types";
+import { Building2, Plus, Users, Edit2, Trash2, X, Crown, ShieldHalf } from "lucide-react";
+import type { Department, DepartmentWritePayload } from "@/types/departments.types";
+import type { MemberListItem } from "@/types/members.types";
+
+const emptyForm: DepartmentWritePayload = { name: "", description: "", lead: null, co_lead: null };
+
+export default function DepartmentsManagePage() {
+  const { data: user } = useCurrentUser();
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [editingDept, setEditingDept] = useState<Department | null>(null);
+  const [form, setForm] = useState<DepartmentWritePayload>(emptyForm);
+
+  const canManage = user && (isAdmin(user.role) || isBureau(user.role));
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["departments", "manage"],
+    queryFn: () => departmentsService.list().then((r) => r.data),
+  });
+
+  const { data: membersData } = useQuery({
+    queryKey: ["members", "list"],
+    queryFn: () => membersService.list().then((r) => r.data),
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const createDept = useMutation({
+    mutationFn: (data: DepartmentWritePayload) => departmentsService.create(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["departments"] }); closeForm(); },
+  });
+
+  const updateDept = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<DepartmentWritePayload> }) =>
+      departmentsService.update(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["departments"] }); closeForm(); },
+  });
+
+  const deleteDept = useMutation({
+    mutationFn: (id: number) => departmentsService.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments"] }),
+  });
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingDept(null);
+    setForm(emptyForm);
+  }
+
+  function openCreateForm() {
+    setEditingDept(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  }
+
+  function openEditForm(dept: Department) {
+    setEditingDept(dept);
+    setForm({
+      name: dept.name,
+      description: dept.description,
+      lead: dept.lead_id,
+      co_lead: dept.co_lead_id,
+    });
+    setShowForm(true);
+  }
+
+  function handleSubmit() {
+    if (editingDept) {
+      updateDept.mutate({ id: editingDept.id, data: form });
+    } else {
+      createDept.mutate(form);
+    }
+  }
+
+  const members: MemberListItem[] = membersData?.results ?? membersData ?? [];
+  const departments: Department[] = Array.isArray(data) ? data : data?.results ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-navy">Départements</h1>
+          <p className="text-gray-500 text-sm mt-1">{departments.length} département{departments.length > 1 ? "s" : ""}</p>
+        </div>
+        {canManage && (
+          <button onClick={openCreateForm} className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+            <Plus size={16} /> Créer un département
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="bg-white rounded-2xl border border-brand-blue/20 p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-brand-navy">
+              {editingDept ? `Modifier « ${editingDept.name} »` : "Nouveau département"}
+            </h2>
+            <button onClick={closeForm} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input
+              placeholder="Nom *"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="sm:col-span-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+            />
+            <textarea
+              placeholder="Description"
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={3}
+              className="sm:col-span-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 resize-none"
+            />
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Responsable (lead)</label>
+              <select
+                value={form.lead ?? ""}
+                onChange={e => setForm(f => ({ ...f, lead: e.target.value ? Number(e.target.value) : null }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
+              >
+                <option value="">Aucun</option>
+                {members.map(m => <option key={m.user_id} value={m.user_id}>{m.first_name} {m.last_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Co-responsable (co-lead)</label>
+              <select
+                value={form.co_lead ?? ""}
+                onChange={e => setForm(f => ({ ...f, co_lead: e.target.value ? Number(e.target.value) : null }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
+              >
+                <option value="">Aucun</option>
+                {members.map(m => <option key={m.user_id} value={m.user_id}>{m.first_name} {m.last_name}</option>)}
+              </select>
+            </div>
+            <p className="sm:col-span-2 text-xs text-gray-400">
+              Désigner un lead ou co-lead attribue automatiquement le rôle « Responsable de département » à cette personne.
+            </p>
+            <div className="sm:col-span-2 flex justify-end">
+              <button
+                onClick={handleSubmit}
+                disabled={createDept.isPending || updateDept.isPending || !form.name}
+                className="px-6 py-2.5 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {createDept.isPending || updateDept.isPending
+                  ? "Enregistrement..."
+                  : editingDept ? "Enregistrer les modifications" : "Créer le département"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 h-32 animate-pulse" />)}
+        </div>
+      ) : departments.length === 0 ? (
+        <div className="text-center py-16">
+          <Building2 size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500 font-medium">Aucun département</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {departments.map(dept => (
+            <div key={dept.id} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-brand-navy/10 flex items-center justify-center shrink-0">
+                    <Building2 size={16} className="text-brand-navy" />
+                  </div>
+                  <p className="font-semibold text-brand-navy text-sm truncate">{dept.name}</p>
+                </div>
+                {canManage && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => openEditForm(dept)} title="Modifier" className="p-1.5 text-gray-300 hover:text-brand-blue rounded-lg hover:bg-brand-blue/5 transition-colors"><Edit2 size={14} /></button>
+                    <button
+                      onClick={() => { if (confirm(`Supprimer le département « ${dept.name} » ?`)) deleteDept.mutate(dept.id); }}
+                      title="Supprimer"
+                      className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {dept.description && <p className="text-gray-500 text-xs line-clamp-2">{dept.description}</p>}
+
+              <div className="space-y-1.5 text-xs text-gray-500">
+                <div className="flex items-center gap-1.5">
+                  <Crown size={12} className="text-brand-orange shrink-0" />
+                  {dept.lead_name ?? <span className="text-gray-300">Aucun lead</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <ShieldHalf size={12} className="text-brand-blue shrink-0" />
+                  {dept.co_lead_name ?? <span className="text-gray-300">Aucun co-lead</span>}
+                </div>
+              </div>
+
+              <Link
+                href={`/manage/departments/${dept.id}`}
+                className="flex items-center justify-center gap-1.5 w-full py-2 text-xs text-brand-blue border border-brand-blue/20 rounded-xl hover:bg-brand-blue hover:text-white transition-colors font-medium"
+              >
+                <Users size={13} /> {dept.member_count} membre{dept.member_count > 1 ? "s" : ""} — Gérer
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

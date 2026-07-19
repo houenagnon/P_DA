@@ -71,6 +71,12 @@ export interface PublicMemberListItem {
   current_job: { title: string; company: string } | null;
 }
 
+export interface PublicProfileDepartment {
+  name: string;
+  start_date: string;
+  end_date: string | null;
+}
+
 export interface PublicProfile {
   slug: string;
   bio: string;
@@ -82,6 +88,7 @@ export interface PublicProfile {
   last_name: string;
   avatar: string | null;
   role: string;
+  department: PublicProfileDepartment | null;
   experiences: MemberExperience[];
   certifications: MemberCertification[];
 }
