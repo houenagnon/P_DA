@@ -19,6 +19,7 @@ class Command(BaseCommand):
         self._create_events()
         self._create_profiles()
         self._create_memberships()
+        self._create_departments()
         self.stdout.write(self.style.SUCCESS("✅ Seed terminé avec succès!"))
 
     def _create_users(self):
@@ -210,7 +211,18 @@ class Command(BaseCommand):
         members = [self.users["alice"], self.users["bob"], self.users["claire"], self.users["david"]]
         for event in upcoming[:3]:
             for user in members:
-                EventParticipant.objects.get_or_create(event=event, user=user)
+                EventParticipant.objects.get_or_create(
+                    event=event, email=user.email,
+                    defaults={
+                        "user": user,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "nationality": "Bénin",
+                        "organisation": "Data Afrique Hub",
+                        "profession": "Membre",
+                        "motivation": "Inscription de démonstration (seed).",
+                    },
+                )
 
     def _create_profiles(self):
         self.stdout.write("  → Création des profils membres...")
@@ -426,3 +438,174 @@ class Command(BaseCommand):
             )
             if created:
                 self.stdout.write(f"    + Candidature: {user.full_name} ({ad['status']})")
+
+    def _create_departments(self):
+        """Crée directement via l'ORM (pas via les services applicatifs) pour ne
+        déclencher aucun email — sauf la série de séances récurrentes, générée via
+        le vrai flux (create_session) car cette fonction n'envoie elle-même aucun
+        email (seul le rappel explicite en envoie un)."""
+        self.stdout.write("  → Création des départements...")
+        from apps.accounts.models import ROLES
+        from apps.departments.models import (
+            Department, DepartmentMembership, DepartmentAnnouncement, DepartmentSession, DepartmentTask,
+        )
+        from apps.departments.services import create_session as generate_session_series
+
+        today = timezone.now().date()
+
+        departments_data = [
+            dict(
+                name="Data Engineering",
+                description="Pipelines de données, infrastructure et outillage data pour toute la communauté.",
+                lead_key="bob", co_lead_key="felix",
+                members=[
+                    dict(user_key="bob", start_date=today - timedelta(days=400)),
+                    dict(user_key="felix", start_date=today - timedelta(days=200)),
+                ],
+                announcements=[
+                    dict(title="Bienvenue dans le département !",
+                         content="Ravi de vous compter parmi nous. Feuille de route du trimestre : migration vers dbt, "
+                                 "standup hebdomadaire le mardi."),
+                ],
+                sessions=[
+                    dict(date=today - timedelta(days=14), theme="Revue d'architecture pipelines",
+                         report="Discussion sur la migration vers dbt. Décision : POC sur le pipeline de facturation "
+                                "d'ici 3 semaines.",
+                         present_keys=["bob", "felix"]),
+                ],
+                series=dict(
+                    first_date=today + timedelta(days=2), theme="Standup hebdomadaire",
+                    meet_link="https://meet.google.com/deng-standup", frequency="weekly", occurrences=4,
+                ),
+                tasks=[
+                    dict(title="Documenter le pipeline de facturation", assigned_key="felix",
+                         due_date=today + timedelta(days=10), status="in_progress"),
+                    dict(title="Mettre en place les tests dbt", assigned_key="bob",
+                         due_date=today + timedelta(days=20), status="todo"),
+                ],
+            ),
+            dict(
+                name="Machine Learning & MLOps",
+                description="Recherche appliquée, mise en production de modèles et bonnes pratiques MLOps.",
+                lead_key="claire", co_lead_key="alice",
+                members=[
+                    dict(user_key="claire", start_date=today - timedelta(days=500)),
+                    dict(user_key="alice", start_date=today - timedelta(days=45)),
+                ],
+                announcements=[
+                    dict(title="Nouveau : gabarit de déploiement MLflow",
+                         content="Un gabarit de déploiement standardisé est disponible pour tous les projets ML du hub. "
+                                 "Documentation dans le drive partagé."),
+                    dict(title="Recherche de volontaires : atelier feature store",
+                         content="Nous cherchons 2-3 volontaires pour co-animer un atelier sur les feature stores "
+                                 "le mois prochain."),
+                ],
+                sessions=[
+                    dict(date=today - timedelta(days=7), theme="Feature store : panorama des outils",
+                         report="Comparatif Feast / Tecton / Hopsworks. Feast retenu pour le POC interne.",
+                         present_keys=["claire", "alice"]),
+                    dict(date=today + timedelta(days=3), theme="Point d'avancement POC Feast",
+                         meet_link="https://meet.google.com/mlops-poc"),
+                ],
+                tasks=[
+                    dict(title="POC Feast sur les données évènements", assigned_key="alice",
+                         due_date=today + timedelta(days=15), status="in_progress"),
+                    dict(title="Rédiger le guide de contribution MLOps", assigned_key="claire", status="todo"),
+                    dict(title="Auditer les modèles en production", assigned_key="claire", status="done"),
+                ],
+            ),
+            dict(
+                name="Formation & Mentorat",
+                description="Programmes de formation, mentorat des nouveaux membres et certifications communautaires.",
+                lead_key="david", co_lead_key=None,
+                members=[
+                    dict(user_key="david", start_date=today - timedelta(days=300)),
+                    dict(user_key="emma", start_date=today - timedelta(days=30)),
+                ],
+                announcements=[
+                    dict(title="Programme de mentorat — appel à mentors",
+                         content="Nous recherchons des mentors pour accompagner les nouveaux membres acceptés ce "
+                                 "trimestre. Contactez David si intéressé."),
+                ],
+                sessions=[
+                    dict(date=today - timedelta(days=21), theme="Kickoff programme de mentorat",
+                         report="8 binômes mentor/mentoré constitués. Premier point d'étape prévu dans un mois.",
+                         present_keys=["david", "emma"]),
+                ],
+                tasks=[
+                    dict(title="Préparer le support d'onboarding mentorat", assigned_key="emma",
+                         due_date=today + timedelta(days=5), status="blocked"),
+                ],
+            ),
+        ]
+
+        for dd in departments_data:
+            lead = self.users.get(dd["lead_key"])
+            co_lead = self.users.get(dd["co_lead_key"]) if dd.get("co_lead_key") else None
+
+            department, created = Department.objects.get_or_create(
+                name=dd["name"],
+                defaults={"description": dd["description"], "lead": lead, "co_lead": co_lead},
+            )
+            if created:
+                self.stdout.write(f"    + Département : {department.name}")
+                for user in filter(None, [lead, co_lead]):
+                    if user.role != ROLES.RESPONSABLE_DEPARTEMENT:
+                        user.role = ROLES.RESPONSABLE_DEPARTEMENT
+                        user.save(update_fields=["role"])
+
+            for md in dd.get("members", []):
+                user = self.users.get(md["user_key"])
+                if not user:
+                    continue
+                DepartmentMembership.objects.get_or_create(
+                    department=department, user=user, start_date=md["start_date"],
+                    defaults={"end_date": md.get("end_date")},
+                )
+
+            for ad in dd.get("announcements", []):
+                DepartmentAnnouncement.objects.get_or_create(
+                    department=department, title=ad["title"],
+                    defaults={"content": ad["content"], "author": lead},
+                )
+
+            for sd in dd.get("sessions", []):
+                present_keys = sd.pop("present_keys", [])
+                session, s_created = DepartmentSession.objects.get_or_create(
+                    department=department, date=sd["date"], theme=sd.get("theme", ""),
+                    defaults={
+                        "report": sd.get("report", ""),
+                        "meet_link": sd.get("meet_link", ""),
+                        "created_by": lead,
+                    },
+                )
+                if s_created and present_keys:
+                    session.present_members.set([self.users[k] for k in present_keys if k in self.users])
+
+            series = dd.get("series")
+            if series and not DepartmentSession.objects.filter(
+                department=department, date=series["first_date"], theme=series["theme"],
+            ).exists():
+                generate_session_series(
+                    department, lead, date=series["first_date"], theme=series["theme"],
+                    meet_link=series.get("meet_link", ""), frequency=series["frequency"],
+                    occurrences=series["occurrences"],
+                )
+
+            for td in dd.get("tasks", []):
+                title = td.pop("title")
+                assigned = self.users.get(td.pop("assigned_key", None))
+                DepartmentTask.objects.get_or_create(
+                    department=department, title=title,
+                    defaults={**td, "assigned_to": assigned, "created_by": lead},
+                )
+
+        # Historique : Alice était dans Data Engineering avant de rejoindre Machine Learning,
+        # pour illustrer l'historique d'adhésion sur un profil.
+        data_eng = Department.objects.filter(name="Data Engineering").first()
+        if data_eng and "alice" in self.users:
+            DepartmentMembership.objects.get_or_create(
+                department=data_eng, user=self.users["alice"],
+                start_date=today - timedelta(days=400),
+                defaults={"end_date": today - timedelta(days=45)},
+            )
