@@ -6,18 +6,19 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from apps.common.permissions import IsAdminOrBureau
-from .models import Department, DepartmentMembership, DepartmentSession, DepartmentTask
+from .models import Department, DepartmentMembership, DepartmentAnnouncement, DepartmentSession, DepartmentTask
 from .serializers import (
     DepartmentListSerializer, DepartmentDetailSerializer, DepartmentWriteSerializer,
     DepartmentMembershipSerializer, AddMembershipSerializer, EndMembershipSerializer,
     DepartmentAnnouncementSerializer, AnnouncementWriteSerializer,
-    DepartmentSessionSerializer, SessionWriteSerializer, SessionReportSerializer,
+    DepartmentSessionSerializer, SessionWriteSerializer, SessionUpdateSerializer, SessionReportSerializer,
     DepartmentTaskSerializer, TaskWriteSerializer, TaskStatusUpdateSerializer,
 )
 from .services import (
     save_department, add_member, end_membership,
     can_manage_department, is_current_department_member, get_my_department_context,
-    create_announcement, create_session, submit_session_report, send_session_reminder,
+    create_announcement, update_announcement,
+    create_session, update_session, delete_session_series, submit_session_report, send_session_reminder,
     create_task,
 )
 
@@ -139,6 +140,25 @@ class DepartmentViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @action(detail=True, methods=["patch", "delete"], url_path="announcements/(?P<announcement_id>[^/.]+)")
+    def announcement_detail(self, request, pk=None, announcement_id=None):
+        department = self.get_object()
+        if not can_manage_department(request.user, department):
+            raise PermissionDenied("Vous ne gérez pas ce département.")
+        try:
+            announcement = department.announcements.get(pk=announcement_id)
+        except DepartmentAnnouncement.DoesNotExist:
+            return Response({"detail": "Annonce introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.method == "DELETE":
+            announcement.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        serializer = AnnouncementWriteSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        update_announcement(announcement, **serializer.validated_data)
+        return Response(DepartmentAnnouncementSerializer(announcement).data)
+
     # ── Séances ────────────────────────────────────────────────────
     @action(detail=True, methods=["get", "post"], url_path="sessions")
     def sessions(self, request, pk=None):
@@ -157,9 +177,44 @@ class DepartmentViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         session = create_session(
             department, request.user,
-            serializer.validated_data["date"], serializer.validated_data.get("theme", ""),
+            date=serializer.validated_data["date"],
+            theme=serializer.validated_data.get("theme", ""),
+            meet_link=serializer.validated_data.get("meet_link", ""),
+            frequency=serializer.validated_data.get("frequency", "none"),
+            occurrences=serializer.validated_data.get("occurrences", 1),
         )
         return Response(DepartmentSessionSerializer(session).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["patch", "delete"], url_path="sessions/(?P<session_id>[^/.]+)")
+    def session_detail(self, request, pk=None, session_id=None):
+        department = self.get_object()
+        if not can_manage_department(request.user, department):
+            raise PermissionDenied("Vous ne gérez pas ce département.")
+        try:
+            session = department.sessions.get(pk=session_id)
+        except DepartmentSession.DoesNotExist:
+            return Response({"detail": "Séance introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.method == "DELETE":
+            session.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        serializer = SessionUpdateSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        update_session(session, **serializer.validated_data)
+        return Response(DepartmentSessionSerializer(session).data)
+
+    @action(detail=True, methods=["delete"], url_path="sessions/(?P<session_id>[^/.]+)/series")
+    def session_series(self, request, pk=None, session_id=None):
+        department = self.get_object()
+        if not can_manage_department(request.user, department):
+            raise PermissionDenied("Vous ne gérez pas ce département.")
+        try:
+            session = department.sessions.get(pk=session_id)
+        except DepartmentSession.DoesNotExist:
+            return Response({"detail": "Séance introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        delete_session_series(session)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"], url_path="sessions/(?P<session_id>[^/.]+)/report")
     def session_report(self, request, pk=None, session_id=None):
@@ -214,13 +269,19 @@ class DepartmentViewSet(ModelViewSet):
         )
         return Response(DepartmentTaskSerializer(task).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["patch"], url_path="tasks/(?P<task_id>[^/.]+)")
+    @action(detail=True, methods=["patch", "delete"], url_path="tasks/(?P<task_id>[^/.]+)")
     def task_detail(self, request, pk=None, task_id=None):
         department = self.get_object()
         try:
             task = department.tasks.get(pk=task_id)
         except DepartmentTask.DoesNotExist:
             return Response({"detail": "Tâche introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.method == "DELETE":
+            if not can_manage_department(request.user, department):
+                raise PermissionDenied("Vous ne gérez pas ce département.")
+            task.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         if can_manage_department(request.user, department):
             serializer = TaskWriteSerializer(data=request.data, partial=True)

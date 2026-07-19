@@ -51,10 +51,16 @@ export interface AnnouncementWritePayload {
   content: string;
 }
 
+export type SessionFrequency = "none" | "weekly" | "biweekly" | "monthly";
+
 export interface DepartmentSession {
   id: number;
   date: string;
   theme: string;
+  meet_link: string;
+  frequency: SessionFrequency;
+  frequency_display: string;
+  series_id: string | null;
   report: string;
   present_member_ids: number[];
   present_count: number;
@@ -64,6 +70,15 @@ export interface DepartmentSession {
 export interface SessionWritePayload {
   date: string;
   theme?: string;
+  meet_link?: string;
+  frequency?: SessionFrequency;
+  occurrences?: number;
+}
+
+export interface SessionUpdatePayload {
+  date?: string;
+  theme?: string;
+  meet_link?: string;
 }
 
 export interface SessionReportPayload {

@@ -1,3 +1,6 @@
+import uuid
+from datetime import timedelta
+
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -5,6 +8,13 @@ from rest_framework.exceptions import ValidationError
 
 from apps.common.background import fire_and_forget
 from apps.common.permissions import BUREAU_ROLES
+
+FREQUENCY_DELTAS = {
+    "weekly": timedelta(days=7),
+    "biweekly": timedelta(days=14),
+    "monthly": timedelta(days=30),
+}
+MAX_OCCURRENCES = 52
 
 
 def can_manage_department(user, department) -> bool:
@@ -149,12 +159,53 @@ def create_announcement(department, author, title, content) -> "DepartmentAnnoun
     return announcement
 
 
-def create_session(department, created_by, date, theme="") -> "DepartmentSession":
+def update_announcement(announcement, **fields) -> "DepartmentAnnouncement":
+    for field, value in fields.items():
+        setattr(announcement, field, value)
+    announcement.save()
+    return announcement
+
+
+def create_session(
+    department, created_by, date, theme="", meet_link="", frequency="none", occurrences=1,
+) -> "DepartmentSession":
     from .models import DepartmentSession
 
-    return DepartmentSession.objects.create(
-        department=department, created_by=created_by, date=date, theme=theme,
-    )
+    if frequency not in FREQUENCY_DELTAS:
+        return DepartmentSession.objects.create(
+            department=department, created_by=created_by, date=date,
+            theme=theme, meet_link=meet_link, frequency="none",
+        )
+
+    occurrences = max(1, min(occurrences or 1, MAX_OCCURRENCES))
+    delta = FREQUENCY_DELTAS[frequency]
+    series_id = uuid.uuid4()
+    created = DepartmentSession.objects.bulk_create([
+        DepartmentSession(
+            department=department, created_by=created_by, date=date + delta * i,
+            theme=theme, meet_link=meet_link, frequency=frequency, series_id=series_id,
+        )
+        for i in range(occurrences)
+    ])
+    return created[0]
+
+
+def update_session(session, **fields) -> "DepartmentSession":
+    for field, value in fields.items():
+        setattr(session, field, value)
+    session.save()
+    return session
+
+
+def delete_session_series(session) -> None:
+    """Supprime cette séance et toutes celles de la même série à partir de sa date
+    (« arrêter la série ici ») — les occurrences passées de la série sont conservées."""
+    from .models import DepartmentSession
+
+    if not session.series_id:
+        session.delete()
+        return
+    DepartmentSession.objects.filter(series_id=session.series_id, date__gte=session.date).delete()
 
 
 def submit_session_report(session, report, present_user_ids) -> "DepartmentSession":

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { departmentsService } from "@/services/departments.service";
 import { formatDate } from "@/lib/utils";
 import { MemberSearchSelect } from "@/components/MemberSearchSelect";
-import { ListChecks } from "lucide-react";
+import { ListChecks, Trash2 } from "lucide-react";
 import type { TaskStatus } from "@/types/departments.types";
 import type { MemberListItem } from "@/types/members.types";
 
@@ -61,6 +61,11 @@ export function TasksPanel({
   const updateStatus = useMutation({
     mutationFn: ({ taskId, status }: { taskId: number; status: TaskStatus }) =>
       departmentsService.tasks.updateStatus(departmentId, taskId, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["department", departmentId, "tasks"] }),
+  });
+
+  const deleteTask = useMutation({
+    mutationFn: (taskId: number) => departmentsService.tasks.delete(departmentId, taskId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["department", departmentId, "tasks"] }),
   });
 
@@ -133,6 +138,13 @@ export function TasksPanel({
                 >
                   {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+                <button
+                  onClick={() => { if (confirm("Supprimer cette tâche ?")) deleteTask.mutate(t.id); }}
+                  title="Supprimer"
+                  className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors shrink-0"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
           </div>

@@ -4,12 +4,19 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { departmentsService } from "@/services/departments.service";
 import { formatDate } from "@/lib/utils";
-import { CalendarClock, Bell, FileEdit } from "lucide-react";
-import type { DepartmentSession } from "@/types/departments.types";
+import { CalendarClock, Bell, FileEdit, Pencil, Trash2, Video, X } from "lucide-react";
+import type { DepartmentSession, SessionFrequency } from "@/types/departments.types";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
+
+const FREQUENCY_OPTIONS: { value: SessionFrequency; label: string }[] = [
+  { value: "none", label: "Unique" },
+  { value: "weekly", label: "Hebdomadaire" },
+  { value: "biweekly", label: "Bihebdomadaire" },
+  { value: "monthly", label: "Mensuelle" },
+];
 
 export function SessionsPanel({
   departmentId,
@@ -21,7 +28,11 @@ export function SessionsPanel({
   const qc = useQueryClient();
   const [date, setDate] = useState(todayIso());
   const [theme, setTheme] = useState("");
-  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [meetLink, setMeetLink] = useState("");
+  const [frequency, setFrequency] = useState<SessionFrequency>("none");
+  const [occurrences, setOccurrences] = useState(8);
+  const [reportSessionId, setReportSessionId] = useState<number | null>(null);
+  const [editSessionId, setEditSessionId] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["department", departmentId, "sessions"],
@@ -29,15 +40,31 @@ export function SessionsPanel({
   });
 
   const createSession = useMutation({
-    mutationFn: () => departmentsService.sessions.create(departmentId, { date, theme }),
+    mutationFn: () =>
+      departmentsService.sessions.create(departmentId, {
+        date, theme, meet_link: meetLink, frequency,
+        occurrences: frequency === "none" ? 1 : occurrences,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["department", departmentId, "sessions"] });
       setTheme("");
+      setMeetLink("");
+      setFrequency("none");
     },
   });
 
   const sendReminder = useMutation({
     mutationFn: (sessionId: number) => departmentsService.sessions.sendReminder(departmentId, sessionId),
+  });
+
+  const deleteSession = useMutation({
+    mutationFn: (sessionId: number) => departmentsService.sessions.delete(departmentId, sessionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["department", departmentId, "sessions"] }),
+  });
+
+  const deleteSeries = useMutation({
+    mutationFn: (sessionId: number) => departmentsService.sessions.deleteSeries(departmentId, sessionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["department", departmentId, "sessions"] }),
   });
 
   const sessions = data ?? [];
@@ -50,7 +77,7 @@ export function SessionsPanel({
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Date</label>
+            <label className="block text-xs text-gray-500 mb-1">Date {frequency !== "none" && "(première occurrence)"}</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
           </div>
           <input
@@ -59,6 +86,36 @@ export function SessionsPanel({
             onChange={(e) => setTheme(e.target.value)}
             className="sm:col-span-2 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
           />
+          <input
+            type="url"
+            placeholder="Lien de la réunion (Meet, Zoom...)"
+            value={meetLink}
+            onChange={(e) => setMeetLink(e.target.value)}
+            className="sm:col-span-2 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+          />
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Fréquence</label>
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as SessionFrequency)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
+            >
+              {FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          {frequency !== "none" && (
+            <div className="sm:col-span-3">
+              <label className="block text-xs text-gray-500 mb-1">Nombre d&apos;occurrences à créer</label>
+              <input
+                type="number"
+                min={1}
+                max={52}
+                value={occurrences}
+                onChange={(e) => setOccurrences(Number(e.target.value))}
+                className="w-full sm:w-40 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+              />
+            </div>
+          )}
         </div>
         <div className="flex justify-end mt-3">
           <button
@@ -85,9 +142,19 @@ export function SessionsPanel({
               <div key={s.id} className="px-5 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium text-brand-navy text-sm">{formatDate(s.date)}{s.theme && ` — ${s.theme}`}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="font-medium text-brand-navy text-sm">
+                      {formatDate(s.date)}{s.theme && ` — ${s.theme}`}
+                      {s.frequency !== "none" && (
+                        <span className="ml-2 text-xs font-normal text-brand-blue bg-blue-50 px-2 py-0.5 rounded-full">{s.frequency_display}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
                       {s.report ? `${s.present_count} présent(s)` : "Rapport non rempli"}
+                      {s.meet_link && (
+                        <a href={s.meet_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-brand-blue hover:underline">
+                          <Video size={11} /> Rejoindre
+                        </a>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -100,32 +167,107 @@ export function SessionsPanel({
                       <Bell size={14} />
                     </button>
                     <button
-                      onClick={() => setEditingSessionId(editingSessionId === s.id ? null : s.id)}
+                      onClick={() => setReportSessionId(reportSessionId === s.id ? null : s.id)}
                       title="Remplir le rapport"
                       className="p-1.5 text-gray-300 hover:text-brand-blue rounded-lg hover:bg-brand-blue/5 transition-colors"
                     >
                       <FileEdit size={14} />
                     </button>
+                    <button
+                      onClick={() => setEditSessionId(editSessionId === s.id ? null : s.id)}
+                      title="Modifier la séance"
+                      className="p-1.5 text-gray-300 hover:text-brand-blue rounded-lg hover:bg-brand-blue/5 transition-colors"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => { if (confirm("Supprimer cette séance ?")) deleteSession.mutate(s.id); }}
+                      title="Supprimer cette séance"
+                      className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
+                {s.series_id && (
+                  <button
+                    onClick={() => { if (confirm("Supprimer cette séance et toutes celles à venir dans la série ?")) deleteSeries.mutate(s.id); }}
+                    className="text-xs text-red-400 hover:text-red-600 mt-1"
+                  >
+                    Arrêter la série à partir d&apos;ici
+                  </button>
+                )}
                 {sendReminder.isSuccess && sendReminder.variables === s.id && (
                   <p className="text-green-600 text-xs mt-1">Rappel envoyé.</p>
                 )}
-                {s.report && editingSessionId !== s.id && (
+                {s.report && reportSessionId !== s.id && (
                   <p className="text-gray-600 text-sm mt-2 whitespace-pre-line">{s.report}</p>
                 )}
-                {editingSessionId === s.id && (
+                {reportSessionId === s.id && (
                   <SessionReportForm
                     departmentId={departmentId}
                     session={s}
                     departmentMembers={departmentMembers}
-                    onDone={() => setEditingSessionId(null)}
+                    onDone={() => setReportSessionId(null)}
+                  />
+                )}
+                {editSessionId === s.id && (
+                  <SessionEditForm
+                    departmentId={departmentId}
+                    session={s}
+                    onDone={() => setEditSessionId(null)}
                   />
                 )}
               </div>
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function SessionEditForm({
+  departmentId,
+  session,
+  onDone,
+}: {
+  departmentId: number;
+  session: DepartmentSession;
+  onDone: () => void;
+}) {
+  const qc = useQueryClient();
+  const [date, setDate] = useState(session.date);
+  const [theme, setTheme] = useState(session.theme);
+  const [meetLink, setMeetLink] = useState(session.meet_link);
+
+  const update = useMutation({
+    mutationFn: () => departmentsService.sessions.update(departmentId, session.id, { date, theme, meet_link: meetLink }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["department", departmentId, "sessions"] });
+      onDone();
+    },
+  });
+
+  return (
+    <div className="mt-3 bg-gray-50 rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-500">Modifier la séance</p>
+        <button onClick={onDone} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+        <input placeholder="Thème" value={theme} onChange={(e) => setTheme(e.target.value)} className="sm:col-span-2 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+        <input type="url" placeholder="Lien de la réunion" value={meetLink} onChange={(e) => setMeetLink(e.target.value)} className="sm:col-span-3 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20" />
+      </div>
+      <div className="flex justify-end">
+        <button
+          onClick={() => update.mutate()}
+          disabled={update.isPending}
+          className="px-4 py-1.5 text-xs bg-brand-blue text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+        >
+          {update.isPending ? "Enregistrement..." : "Enregistrer"}
+        </button>
       </div>
     </div>
   );

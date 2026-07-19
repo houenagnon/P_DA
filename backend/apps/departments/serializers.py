@@ -108,17 +108,30 @@ class DepartmentSessionSerializer(serializers.ModelSerializer):
         source="present_members", many=True, read_only=True,
     )
     present_count = serializers.IntegerField(source="present_members.count", read_only=True)
+    frequency_display = serializers.CharField(source="get_frequency_display", read_only=True)
 
     class Meta:
         model = DepartmentSession
         fields = [
-            "id", "date", "theme", "report", "present_member_ids", "present_count", "created_at",
+            "id", "date", "theme", "meet_link", "frequency", "frequency_display", "series_id",
+            "report", "present_member_ids", "present_count", "created_at",
         ]
 
 
 class SessionWriteSerializer(serializers.Serializer):
     date = serializers.DateField()
     theme = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    meet_link = serializers.URLField(required=False, allow_blank=True)
+    frequency = serializers.ChoiceField(
+        choices=DepartmentSession.FREQUENCY_CHOICES, required=False, default="none",
+    )
+    occurrences = serializers.IntegerField(required=False, min_value=1, max_value=52, default=1)
+
+
+class SessionUpdateSerializer(serializers.Serializer):
+    date = serializers.DateField(required=False)
+    theme = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    meet_link = serializers.URLField(required=False, allow_blank=True)
 
 
 class SessionReportSerializer(serializers.Serializer):

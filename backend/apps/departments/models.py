@@ -53,9 +53,19 @@ class DepartmentAnnouncement(TimestampMixin):
 
 
 class DepartmentSession(TimestampMixin):
+    FREQUENCY_CHOICES = [
+        ("none", "Unique"),
+        ("weekly", "Hebdomadaire"),
+        ("biweekly", "Bihebdomadaire"),
+        ("monthly", "Mensuelle"),
+    ]
+
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="sessions")
     date = models.DateField(verbose_name="Date de la séance")
     theme = models.CharField(max_length=300, blank=True, verbose_name="Thème")
+    meet_link = models.URLField(blank=True, verbose_name="Lien de la réunion")
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default="none", verbose_name="Fréquence")
+    series_id = models.UUIDField(null=True, blank=True, db_index=True, verbose_name="Série")
     report = models.TextField(blank=True, verbose_name="Compte-rendu")
     present_members = models.ManyToManyField(
         settings.AUTH_USER_MODEL, blank=True, related_name="attended_department_sessions",

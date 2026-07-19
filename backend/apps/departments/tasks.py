@@ -129,12 +129,13 @@ def send_session_reminder_email(self, session_pk: int):
         return
 
     theme_line = f"Thème : {session.theme}\n" if session.theme else ""
+    meet_line = f"Lien de la réunion : {session.meet_link}\n" if session.meet_link else ""
     _send_email(
         subject=f"Rappel — Séance du département {session.department.name}",
         message=(
             f"Rappel : une séance du département « {session.department.name} » est prévue "
             f"le {session.date:%d/%m/%Y}.\n\n"
-            f"{theme_line}\n"
+            f"{theme_line}{meet_line}\n"
             f"À bientôt,\n"
             f"L'équipe Data Afrique Hub"
         ),
