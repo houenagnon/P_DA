@@ -38,7 +38,7 @@ export default function BlogPage() {
       <div className="bg-gradient-to-br from-brand-navy via-[#0a0a2e] to-[#0c1a4a] text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center">
           <div className="inline-flex items-center gap-2 bg-brand-blue/20 border border-brand-blue/30 rounded-full px-4 py-1.5 text-sm text-blue-300 mb-6">
-            <BookOpen size={14} /> Blog
+            <BookOpen size={14} /> Actualités
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">
             Articles & <span className="text-brand-orange">Ressources</span>

@@ -56,7 +56,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
                 href="/blog"
                 className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-brand-blue transition-colors"
               >
-                <ArrowLeft size={14} /> Blog
+                <ArrowLeft size={14} /> Actualités
               </Link>
               {article.category && (
                 <>

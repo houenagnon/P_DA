@@ -10,6 +10,7 @@ const navLinks = [
   { href: "/about", label: "Qui sommes-nous ?" },
   { href: "/events", label: "Événements" },
   { href: "/members", label: "Membres" },
+  { href: "/blog", label: "Actualités" },
 ];
 
 export function PublicHeader() {
