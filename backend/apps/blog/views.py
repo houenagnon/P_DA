@@ -1,12 +1,17 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from apps.common.permissions import IsAdminOrBureau
-from .models import Article, ArticleCategory
+from apps.common.permissions import IsAdminOrBureau, BUREAU_ROLES
+from .models import Article, ArticleCategory, ArticleComment, ArticleLike
 from .serializers import (
     ArticleListSerializer, ArticleDetailSerializer, ArticleAdminSerializer, ArticleCategorySerializer,
+    ArticleCommentSerializer,
 )
 
 
@@ -57,7 +62,57 @@ class ArticleAdminViewSet(ModelViewSet):
 
     def _save_with_published_at(self, serializer, **extra):
         published_at = serializer.validated_data.get("published_at")
-        status = serializer.validated_data.get("status")
-        if status == Article.STATUS_PUBLISHED and not published_at:
+        article_status = serializer.validated_data.get("status")
+        if article_status == Article.STATUS_PUBLISHED and not published_at:
             extra["published_at"] = timezone.now()
         serializer.save(**extra)
+
+
+def _get_published_article(slug):
+    return get_object_or_404(Article, slug=slug, status=Article.STATUS_PUBLISHED)
+
+
+class ArticleCommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = ArticleCommentSerializer
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def get_queryset(self):
+        return _get_published_article(self.kwargs["slug"]).comments.select_related("author").order_by("created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(article=_get_published_article(self.kwargs["slug"]), author=self.request.user)
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+
+class ArticleCommentDeleteView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ArticleCommentSerializer
+    lookup_url_kwarg = "comment_id"
+
+    def get_queryset(self):
+        return ArticleComment.objects.filter(article__slug=self.kwargs["slug"])
+
+    def get_object(self):
+        obj = get_object_or_404(self.get_queryset(), pk=self.kwargs["comment_id"])
+        user = self.request.user
+        if not (user.id == obj.author_id or user.role == "admin" or user.role in BUREAU_ROLES):
+            raise PermissionDenied("Vous ne pouvez supprimer que votre propre commentaire.")
+        return obj
+
+
+class ArticleLikeToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        article = _get_published_article(slug)
+        like, created = ArticleLike.objects.get_or_create(article=article, user=request.user)
+        if not created:
+            like.delete()
+        return Response({"liked": created, "likes_count": article.likes.count()})

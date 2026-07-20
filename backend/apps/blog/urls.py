@@ -1,6 +1,9 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
-from .views import ArticleListView, ArticleDetailView, ArticleCategoryListView, ArticleAdminViewSet
+from .views import (
+    ArticleListView, ArticleDetailView, ArticleCategoryListView, ArticleAdminViewSet,
+    ArticleCommentListCreateView, ArticleCommentDeleteView, ArticleLikeToggleView,
+)
 
 # SimpleRouter (pas DefaultRouter) : DefaultRouter génère une vue "API root" sur le
 # chemin racine ("") de CE routeur, qui entrait en collision avec le path("", ArticleListView)
@@ -12,5 +15,8 @@ urlpatterns = [
     path("manage/categories/", ArticleCategoryListView.as_view(), name="article-category-list"),
     *router.urls,
     path("", ArticleListView.as_view(), name="article-list"),
+    path("<slug:slug>/comments/", ArticleCommentListCreateView.as_view(), name="article-comments"),
+    path("<slug:slug>/comments/<int:comment_id>/", ArticleCommentDeleteView.as_view(), name="article-comment-delete"),
+    path("<slug:slug>/like/", ArticleLikeToggleView.as_view(), name="article-like"),
     path("<slug:slug>/", ArticleDetailView.as_view(), name="article-detail"),
 ]

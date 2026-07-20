@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Article, ArticleCategory
+from apps.common.permissions import BUREAU_ROLES
+from .models import Article, ArticleCategory, ArticleComment
 
 
 class ArticleCategorySerializer(serializers.ModelSerializer):
@@ -12,12 +13,16 @@ class ArticleListSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
     category = ArticleCategorySerializer(read_only=True)
     tags_list = serializers.SerializerMethodField()
+    comments_count = serializers.IntegerField(source="comments.count", read_only=True)
+    likes_count = serializers.IntegerField(source="likes.count", read_only=True)
+    is_liked_by_me = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
         fields = [
             "id", "slug", "title", "excerpt", "cover_image",
             "author_name", "category", "tags_list", "published_at",
+            "comments_count", "likes_count", "is_liked_by_me",
         ]
 
     def get_author_name(self, obj):
@@ -25,6 +30,12 @@ class ArticleListSerializer(serializers.ModelSerializer):
 
     def get_tags_list(self, obj):
         return [t.strip() for t in obj.tags.split(",") if t.strip()] if obj.tags else []
+
+    def get_is_liked_by_me(self, obj) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(user=request.user).exists()
 
 
 class ArticleDetailSerializer(ArticleListSerializer):
@@ -49,3 +60,21 @@ class ArticleAdminSerializer(serializers.ModelSerializer):
 
     def get_author_name(self, obj):
         return obj.author.full_name if obj.author else None
+
+
+class ArticleCommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source="author.full_name", read_only=True)
+    author_avatar = serializers.ImageField(source="author.avatar", read_only=True)
+    can_delete = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ArticleComment
+        fields = ["id", "content", "author_name", "author_avatar", "created_at", "can_delete"]
+        read_only_fields = ["id", "author_name", "author_avatar", "created_at", "can_delete"]
+
+    def get_can_delete(self, obj) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        user = request.user
+        return user.id == obj.author_id or user.role == "admin" or user.role in BUREAU_ROLES

@@ -46,3 +46,27 @@ class Article(TimestampMixin):
         if not self.slug:
             self.slug = slugify(self.title)[:320]
         super().save(*args, **kwargs)
+
+
+class ArticleComment(TimestampMixin):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="article_comments")
+    content = models.TextField()
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.author} → {self.article}"
+
+
+class ArticleLike(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="likes")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="article_likes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("article", "user")]
+
+    def __str__(self):
+        return f"{self.user} ♥ {self.article}"

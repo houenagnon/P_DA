@@ -14,12 +14,29 @@ export interface ArticleListItem {
   category: ArticleCategory | null;
   tags_list: string[];
   published_at: string | null;
+  comments_count: number;
+  likes_count: number;
+  is_liked_by_me: boolean;
 }
 
 export interface ArticleDetail extends ArticleListItem {
   content: string;
   seo_title: string;
   seo_description: string;
+}
+
+export interface ArticleComment {
+  id: number;
+  content: string;
+  author_name: string | null;
+  author_avatar: string | null;
+  created_at: string;
+  can_delete: boolean;
+}
+
+export interface LikeToggleResult {
+  liked: boolean;
+  likes_count: number;
 }
 
 export type ArticleStatus = "draft" | "scheduled" | "published";

@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 import type {
   ArticleListItem, ArticleDetail, ArticleAdmin, ArticleWritePayload, ArticleCategory,
+  ArticleComment, LikeToggleResult,
 } from "@/types/blog.types";
 
 export const blogService = {
@@ -9,6 +10,18 @@ export const blogService = {
 
   categories: {
     list: () => api.get<ArticleCategory[]>("/blog/manage/categories/"),
+  },
+
+  comments: {
+    list: (slug: string) => api.get<ArticleComment[]>(`/blog/${slug}/comments/`),
+    create: (slug: string, content: string) =>
+      api.post<ArticleComment>(`/blog/${slug}/comments/`, { content }),
+    delete: (slug: string, commentId: number) =>
+      api.delete(`/blog/${slug}/comments/${commentId}/`),
+  },
+
+  likes: {
+    toggle: (slug: string) => api.post<LikeToggleResult>(`/blog/${slug}/like/`),
   },
 
   manage: {

@@ -20,6 +20,7 @@ class Command(BaseCommand):
         self._create_profiles()
         self._create_memberships()
         self._create_departments()
+        self._create_articles()
         self.stdout.write(self.style.SUCCESS("✅ Seed terminé avec succès!"))
 
     def _create_users(self):
@@ -609,3 +610,126 @@ class Command(BaseCommand):
                 start_date=today - timedelta(days=400),
                 defaults={"end_date": today - timedelta(days=45)},
             )
+
+    def _create_articles(self):
+        self.stdout.write("  → Création des actualités...")
+        from apps.blog.models import Article, ArticleCategory
+
+        now = timezone.now()
+
+        categories_data = ["Communauté", "Tutoriels", "Carrières", "Actualités DAH"]
+        categories = {}
+        for name in categories_data:
+            cat, _ = ArticleCategory.objects.get_or_create(name=name, defaults={"slug": name.lower().replace(" ", "-")})
+            categories[name] = cat
+
+        articles_data = [
+            dict(
+                title="Comment démarrer en Data Science quand on vient d'un autre métier",
+                author_key="claire",
+                category="Tutoriels",
+                tags="reconversion, débutant, carrière",
+                excerpt="Un guide pratique pour celles et ceux qui envisagent une reconversion vers la data, "
+                        "sans repartir de zéro.",
+                content=(
+                    "La reconversion vers la data science est un sujet qui revient sans cesse dans nos échanges "
+                    "communautaires. Voici les trois étapes que je recommande systématiquement : d'abord "
+                    "consolider les bases en statistiques et Python, ensuite construire un ou deux projets "
+                    "concrets avec des données réelles (idéalement africaines, pour donner du sens), et enfin "
+                    "documenter son parcours publiquement — un portfolio vaut plus qu'un diplôme aux yeux de "
+                    "beaucoup de recruteurs.\n\n"
+                    "Beaucoup de membres de DAH sont passés par ce chemin : développeurs web, analystes "
+                    "financiers, enseignants... La diversité des parcours est une force de notre communauté."
+                ),
+                days_ago=3,
+            ),
+            dict(
+                title="Data Summit Africa 2025 : ce qu'il ne fallait pas manquer",
+                author_key="president",
+                category="Actualités DAH",
+                tags="évènement, conférence, recap",
+                excerpt="Retour sur les temps forts de notre plus grand rassemblement annuel.",
+                content=(
+                    "Deux jours de conférences, d'ateliers et de rencontres qui ont réuni plus de 200 "
+                    "participants venus de 15 pays. Merci à tous les intervenants et à l'équipe organisatrice "
+                    "pour cette édition mémorable.\n\n"
+                    "Les enregistrements des sessions principales seront disponibles prochainement pour les "
+                    "membres qui n'ont pas pu se déplacer."
+                ),
+                days_ago=10,
+            ),
+            dict(
+                title="MLOps en Afrique : pourquoi c'est le bon moment pour s'y mettre",
+                author_key="bob",
+                category="Tutoriels",
+                tags="mlops, infrastructure, carrière",
+                excerpt="La demande pour des profils MLOps explose sur le continent — état des lieux et conseils.",
+                content=(
+                    "De plus en plus d'entreprises africaines passent de la phase d'expérimentation ML à la "
+                    "mise en production réelle. Cette transition crée une forte demande pour des profils "
+                    "capables de déployer, monitorer et maintenir des modèles à l'échelle.\n\n"
+                    "Le département Data Engineering de DAH organise régulièrement des sessions sur ces sujets "
+                    "— n'hésitez pas à rejoindre nos séances hebdomadaires."
+                ),
+                days_ago=18,
+            ),
+            dict(
+                title="5 opportunités de carrière pour nos membres ce mois-ci",
+                author_key="sg",
+                category="Carrières",
+                tags="emploi, opportunités",
+                excerpt="Une sélection d'offres partagées par des entreprises partenaires de la communauté.",
+                content=(
+                    "Chaque mois, nous relayons les offres d'emploi et de stage que nos partenaires nous "
+                    "confient en priorité pour la communauté DAH. Consultez le canal #opportunités pour "
+                    "postuler directement.\n\n"
+                    "Si votre entreprise recrute des profils data, contactez le bureau pour figurer dans notre "
+                    "prochaine sélection."
+                ),
+                days_ago=6,
+            ),
+            dict(
+                title="Bienvenue à notre nouvelle promotion de membres",
+                author_key="president",
+                category="Communauté",
+                tags="communauté, bienvenue",
+                excerpt="Un mot de bienvenue pour les candidatures acceptées ce trimestre.",
+                content=(
+                    "Nous sommes heureux d'accueillir une nouvelle vague de membres au sein de Data Afrique "
+                    "Hub ce trimestre. Data analysts, ingénieurs, étudiants, professionnels en reconversion : "
+                    "toutes et tous apportent une richesse de parcours à notre communauté panafricaine.\n\n"
+                    "N'hésitez pas à compléter votre profil et à rejoindre un département qui vous intéresse."
+                ),
+                days_ago=1,
+            ),
+            dict(
+                title="Brouillon : Retour d'expérience sur notre premier hackathon santé",
+                author_key="david",
+                category="Communauté",
+                tags="hackathon, santé",
+                excerpt="Article en cours de rédaction, pas encore publié.",
+                content="Version de travail — à compléter après le hackathon.",
+                status="draft",
+                days_ago=0,
+            ),
+        ]
+
+        for ad in articles_data:
+            author = self.users.get(ad["author_key"])
+            status = ad.get("status", Article.STATUS_PUBLISHED)
+            published_at = now - timedelta(days=ad["days_ago"]) if status == Article.STATUS_PUBLISHED else None
+
+            article, created = Article.objects.get_or_create(
+                title=ad["title"],
+                defaults={
+                    "content": ad["content"],
+                    "excerpt": ad["excerpt"],
+                    "author": author,
+                    "category": categories.get(ad["category"]),
+                    "tags": ad["tags"],
+                    "status": status,
+                    "published_at": published_at,
+                },
+            )
+            if created:
+                self.stdout.write(f"    + Article : {article.title}")

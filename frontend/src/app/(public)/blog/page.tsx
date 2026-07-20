@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { BookOpen, Search, Calendar, Tag, User } from "lucide-react";
+import { BookOpen, Search, Calendar, Tag, User, Heart, MessageCircle } from "lucide-react";
 import { blogService } from "@/services/blog.service";
 import { formatDate } from "@/lib/utils";
 import type { ArticleListItem } from "@/types/blog.types";
@@ -233,6 +233,12 @@ function ArticleMeta({ article }: { article: ArticleListItem }) {
           <Tag size={10} /> {tag}
         </span>
       ))}
+      <span className="flex items-center gap-1 ml-auto">
+        <Heart size={11} /> {article.likes_count}
+      </span>
+      <span className="flex items-center gap-1">
+        <MessageCircle size={11} /> {article.comments_count}
+      </span>
     </div>
   );
 }

@@ -1,14 +1,23 @@
 "use client";
 
-import { use } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { use, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, Tag, BookOpen } from "lucide-react";
+import { ArrowLeft, Calendar, User, Tag, BookOpen, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { blogService } from "@/services/blog.service";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime, avatarUrl } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/useAuth";
+import type { User as AuthUser } from "@/types/auth.types";
+
+function extractErrorMessage(error: unknown): string {
+  const fallback = "Une erreur est survenue.";
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  return typeof detail === "string" ? detail : fallback;
+}
 
 export default function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const { data: currentUser } = useCurrentUser();
 
   const { data: article, isLoading, isError } = useQuery({
     queryKey: ["article", slug],
@@ -107,7 +116,20 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
               className="prose prose-lg prose-gray max-w-none prose-headings:text-brand-navy prose-a:text-brand-blue prose-strong:text-brand-navy"
               dangerouslySetInnerHTML={{ __html: article.content }}
             />
+
+            {/* Like + compteur commentaires */}
+            <div className="flex items-center gap-4 mt-10 pt-6 border-t border-gray-100">
+              <LikeButton slug={slug} isLiked={article.is_liked_by_me} likesCount={article.likes_count} isAuthenticated={!!currentUser} />
+              <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                <MessageCircle size={16} /> {article.comments_count} commentaire{article.comments_count > 1 ? "s" : ""}
+              </span>
+            </div>
           </div>
+        </div>
+
+        {/* Commentaires */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-10 mt-6">
+          <CommentsSection slug={slug} currentUser={currentUser} />
         </div>
 
         {/* Footer */}
@@ -120,6 +142,165 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LikeButton({
+  slug, isLiked, likesCount, isAuthenticated,
+}: {
+  slug: string;
+  isLiked: boolean;
+  likesCount: number;
+  isAuthenticated: boolean;
+}) {
+  const qc = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: () => blogService.likes.toggle(slug).then((r) => r.data),
+    onSuccess: (result) => {
+      qc.setQueryData(["article", slug], (prev: unknown) => {
+        if (!prev || typeof prev !== "object") return prev;
+        return { ...prev, is_liked_by_me: result.liked, likes_count: result.likes_count };
+      });
+    },
+  });
+
+  if (!isAuthenticated) {
+    return (
+      <span className="flex items-center gap-1.5 text-sm text-gray-400">
+        <Heart size={16} /> {likesCount} j&apos;aime
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => mutation.mutate()}
+      disabled={mutation.isPending}
+      className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-colors ${
+        isLiked
+          ? "bg-red-50 border-red-200 text-red-500"
+          : "bg-white border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-500"
+      }`}
+    >
+      <Heart size={16} className={isLiked ? "fill-red-500" : ""} /> {likesCount}
+    </button>
+  );
+}
+
+function CommentsSection({
+  slug, currentUser,
+}: {
+  slug: string;
+  currentUser: AuthUser | undefined;
+}) {
+  const qc = useQueryClient();
+  const [content, setContent] = useState("");
+
+  const { data: comments = [], isLoading } = useQuery({
+    queryKey: ["article-comments", slug],
+    queryFn: () => blogService.comments.list(slug).then((r) => r.data),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (text: string) => blogService.comments.create(slug, text).then((r) => r.data),
+    onSuccess: () => {
+      setContent("");
+      qc.invalidateQueries({ queryKey: ["article-comments", slug] });
+      qc.invalidateQueries({ queryKey: ["article", slug] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (commentId: number) => blogService.comments.delete(slug, commentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["article-comments", slug] });
+      qc.invalidateQueries({ queryKey: ["article", slug] });
+    },
+  });
+
+  return (
+    <div>
+      <h2 className="flex items-center gap-2 text-lg font-bold text-brand-navy mb-6">
+        <MessageCircle size={19} /> Commentaires
+      </h2>
+
+      {currentUser ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (content.trim()) createMutation.mutate(content.trim());
+          }}
+          className="flex gap-3 mb-8"
+        >
+          <img
+            src={currentUser.avatar ?? avatarUrl(currentUser.full_name, 40)}
+            alt={currentUser.full_name}
+            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+          />
+          <div className="flex-1">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={2}
+              placeholder="Ajouter un commentaire…"
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 resize-none"
+            />
+            {createMutation.isError && (
+              <p className="text-red-500 text-xs mt-1">{extractErrorMessage(createMutation.error)}</p>
+            )}
+            <button
+              type="submit"
+              disabled={createMutation.isPending || !content.trim()}
+              className="mt-2 px-4 py-1.5 bg-brand-blue text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {createMutation.isPending ? "Envoi…" : "Publier"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className="text-sm text-gray-400 mb-8">
+          <Link href="/login" className="text-brand-blue hover:underline">Connectez-vous</Link> pour laisser un commentaire.
+        </p>
+      )}
+
+      {isLoading ? (
+        <p className="text-sm text-gray-400">Chargement des commentaires…</p>
+      ) : comments.length === 0 ? (
+        <p className="text-sm text-gray-400">Aucun commentaire pour l&apos;instant.</p>
+      ) : (
+        <div className="space-y-5">
+          {comments.map((comment) => (
+            <div key={comment.id} className="flex gap-3">
+              <img
+                src={comment.author_avatar ?? avatarUrl(comment.author_name ?? "?", 40)}
+                alt={comment.author_name ?? ""}
+                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+              />
+              <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-brand-navy">{comment.author_name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">{formatDateTime(comment.created_at)}</span>
+                    {comment.can_delete && (
+                      <button
+                        onClick={() => deleteMutation.mutate(comment.id)}
+                        disabled={deleteMutation.isPending}
+                        className="text-gray-300 hover:text-red-500 transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{comment.content}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
