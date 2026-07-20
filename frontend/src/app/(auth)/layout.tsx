@@ -5,13 +5,23 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen flex">
       {/* Left panel - Brand */}
       <div className="hidden lg:flex lg:w-[45%] bg-brand-navy relative overflow-hidden flex-col justify-between p-12">
+        {/* Photo de communauté en fond */}
+        <img
+          src="/images/students-celebrating.png"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-50"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-navy/90 via-brand-navy/80 to-brand-navy/95" />
         {/* Background decoration */}
         <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 20% 80%, #0972E1 0%, transparent 50%), radial-gradient(circle at 80% 20%, #FF8A00 0%, transparent 40%)", opacity: 0.15 }} />
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
         {/* Logo */}
         <Link href="/" className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-blue flex items-center justify-center text-white font-bold text-sm">DAH</div>
+          <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center overflow-hidden">
+            <img src="/logo/dah-logo.jpg" alt="Data Afrique Hub" className="w-full h-full object-cover rounded" />
+          </div>
           <span className="text-white font-bold text-lg">Data Afrique Hub</span>
         </Link>
 
@@ -58,7 +68,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-gray-50">
         {/* Mobile logo */}
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
-          <div className="w-9 h-9 rounded-lg bg-brand-blue flex items-center justify-center text-white font-bold text-sm">DAH</div>
+          <img src="/logo/dah-logo.jpg" alt="Data Afrique Hub" className="w-9 h-9 rounded-lg object-cover" />
           <span className="font-bold text-brand-navy">Data Afrique Hub</span>
         </Link>
 

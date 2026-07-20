@@ -42,10 +42,10 @@ const testimonials = [
 ];
 
 const activities = [
-  { icon: BookOpen, title: "Apprentissage", desc: "Formations pratiques en Data Science, ML, IA et outils cloud pour tous les niveaux." },
-  { icon: Lightbulb, title: "Innovation", desc: "Hackathons et projets communautaires pour résoudre des problèmes africains par la data." },
-  { icon: Handshake, title: "Collaboration", desc: "Networking, mentoring et opportunités professionnelles au sein d'un réseau panafricain." },
-  { icon: FlaskConical, title: "Recherche", desc: "Publications, conférences et articles sur l'impact de la data en Afrique." },
+  { icon: BookOpen, title: "Apprentissage", desc: "Formations pratiques en Data Science, ML, IA et outils cloud pour tous les niveaux.", image: "/images/learning-img.png" },
+  { icon: Lightbulb, title: "Innovation", desc: "Hackathons et projets communautaires pour résoudre des problèmes africains par la data.", image: "/images/innovation-img.png" },
+  { icon: Handshake, title: "Collaboration", desc: "Networking, mentoring et opportunités professionnelles au sein d'un réseau panafricain.", image: "/images/collaboration-img.png" },
+  { icon: FlaskConical, title: "Recherche", desc: "Publications, conférences et articles sur l'impact de la data en Afrique.", image: "/images/search-img.png" },
 ];
 
 const ROLE_ORDER: Record<string, number> = {
@@ -145,11 +145,15 @@ export default function LandingPage() {
               <p className="text-white/60 max-w-xl mx-auto">DAH structure ses activités autour de quatre piliers qui forment l&apos;ADN de notre communauté.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {activities.map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="group bg-brand-orange rounded-2xl p-6 text-white hover:scale-105 transition-transform duration-200 cursor-default">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-white/30 transition-colors"><Icon size={22} /></div>
-                  <h3 className="font-semibold text-lg mb-2">{title}</h3>
-                  <p className="text-white/80 text-sm leading-relaxed">{desc}</p>
+              {activities.map(({ icon: Icon, title, desc, image }) => (
+                <div key={title} className="group relative h-64 rounded-2xl overflow-hidden text-white hover:scale-105 transition-transform duration-200 cursor-default">
+                  <img src={image} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-orange via-brand-orange/85 to-brand-orange/40 group-hover:from-brand-orange/95 transition-colors duration-200" />
+                  <div className="relative h-full p-6 flex flex-col justify-end">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-4 group-hover:bg-white/30 transition-colors"><Icon size={22} /></div>
+                    <h3 className="font-semibold text-lg mb-2">{title}</h3>
+                    <p className="text-white/80 text-sm leading-relaxed">{desc}</p>
+                  </div>
                 </div>
               ))}
             </div>

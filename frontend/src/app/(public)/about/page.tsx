@@ -16,14 +16,24 @@ export default function AboutPage() {
     <>
       {/* Hero */}
       <section className="bg-brand-navy text-white py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-6">
-            Qui sommes-<span className="text-brand-orange">nous</span> ?
-          </h1>
-          <p className="text-white/70 text-lg leading-relaxed max-w-2xl mx-auto">
-            Data Afrique Hub est une communauté panafricaine dédiée à la promotion et au développement
-            de la data science, de l&apos;IA et des technologies numériques en Afrique.
-          </p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
+          <div className="text-center lg:text-left">
+            <h1 className="text-4xl sm:text-5xl font-bold mb-6">
+              Qui sommes-<span className="text-brand-orange">nous</span> ?
+            </h1>
+            <p className="text-white/70 text-lg leading-relaxed max-w-2xl mx-auto lg:mx-0">
+              Data Afrique Hub est une communauté panafricaine dédiée à la promotion et au développement
+              de la data science, de l&apos;IA et des technologies numériques en Afrique.
+            </p>
+          </div>
+          <div className="relative">
+            <div className="absolute -inset-4 bg-brand-orange/20 rounded-3xl blur-2xl" />
+            <img
+              src="/images/students-celebrating.png"
+              alt="Membres de la communauté Data Afrique Hub"
+              className="relative rounded-2xl shadow-2xl w-full h-64 sm:h-80 object-cover border border-white/10"
+            />
+          </div>
         </div>
       </section>
 

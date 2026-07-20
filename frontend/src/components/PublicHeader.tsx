@@ -22,9 +22,7 @@ export function PublicHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-lg bg-brand-blue flex items-center justify-center text-white font-bold text-sm">
-            DAH
-          </div>
+          <img src="/logo/dah-logo.jpg" alt="Data Afrique Hub" className="w-10 h-10 rounded-lg object-cover" />
           <span className="font-bold text-brand-navy text-base hidden sm:block">
             Data Afrique Hub
           </span>

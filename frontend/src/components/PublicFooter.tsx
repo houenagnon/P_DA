@@ -10,8 +10,8 @@ export function PublicFooter() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-[#0972E1] flex items-center justify-center text-white font-bold text-sm">
-                DAH
+              <div className="w-10 h-10 rounded-lg bg-white p-1 flex items-center justify-center overflow-hidden">
+                <img src="/logo/dah-logo.jpg" alt="Data Afrique Hub" className="w-full h-full object-cover rounded" />
               </div>
               <span className="font-bold text-lg">Data Afrique Hub</span>
             </div>

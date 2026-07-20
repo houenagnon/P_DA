@@ -136,8 +136,8 @@ function MemberCard({ fullName, avatar, role, email, memberNumber, memberSince, 
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-brand-blue flex items-center justify-center font-bold text-xs shrink-0">
-                  DAH
+                <div className="w-8 h-8 rounded-lg bg-white p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                  <img src="/logo/dah-logo.jpg" alt="Data Afrique Hub" className="w-full h-full object-cover rounded" />
                 </div>
                 <div>
                   <p className="font-bold text-sm leading-tight">Data Afrique Hub</p>

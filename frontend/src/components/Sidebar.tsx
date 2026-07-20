@@ -33,7 +33,9 @@ export function Sidebar() {
   return (
     <aside className={`${collapsed ? "w-[68px]" : "w-64"} bg-brand-navy text-white flex flex-col shrink-0 transition-all duration-200`}>
       <div className={`flex items-center ${collapsed ? "justify-center p-4" : "gap-3 p-5"} border-b border-white/10 h-[68px]`}>
-        <div className="w-8 h-8 rounded-lg bg-brand-blue flex items-center justify-center text-white font-bold text-xs shrink-0">DAH</div>
+        <div className="w-8 h-8 rounded-lg bg-white p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+          <img src="/logo/dah-logo.jpg" alt="Data Afrique Hub" className="w-full h-full object-cover rounded" />
+        </div>
         {!collapsed && <div><p className="font-bold text-sm leading-tight">Data Afrique Hub</p><p className="text-white/40 text-xs">Portail</p></div>}
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">
