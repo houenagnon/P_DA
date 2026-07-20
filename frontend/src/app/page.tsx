@@ -42,10 +42,10 @@ const testimonials = [
 ];
 
 const activities = [
-  { icon: BookOpen, title: "Apprentissage", desc: "Formations pratiques en Data Science, ML, IA et outils cloud pour tous les niveaux.", image: "/images/learning-img.png" },
-  { icon: Lightbulb, title: "Innovation", desc: "Hackathons et projets communautaires pour résoudre des problèmes africains par la data.", image: "/images/innovation-img.png" },
-  { icon: Handshake, title: "Collaboration", desc: "Networking, mentoring et opportunités professionnelles au sein d'un réseau panafricain.", image: "/images/collaboration-img.png" },
-  { icon: FlaskConical, title: "Recherche", desc: "Publications, conférences et articles sur l'impact de la data en Afrique.", image: "/images/search-img.png" },
+  { icon: BookOpen, title: "Apprentissage", desc: "Formations pratiques en Data Science, ML, IA et outils cloud pour tous les niveaux." },
+  { icon: Lightbulb, title: "Innovation", desc: "Hackathons et projets communautaires pour résoudre des problèmes africains par la data." },
+  { icon: Handshake, title: "Collaboration", desc: "Networking, mentoring et opportunités professionnelles au sein d'un réseau panafricain." },
+  { icon: FlaskConical, title: "Recherche", desc: "Publications, conférences et articles sur l'impact de la data en Afrique." },
 ];
 
 const ROLE_ORDER: Record<string, number> = {
@@ -89,6 +89,13 @@ export default function LandingPage() {
       <main className="pt-[72px]">
         {/* HERO */}
         <section className="relative min-h-[90vh] flex items-center justify-center text-white overflow-hidden" style={{ background: "linear-gradient(135deg, #04041A 0%, #0A1128 50%, #051A4A 100%)" }}>
+          <img
+            src="/images/innovation-img.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover opacity-40"
+          />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(4,4,26,0.92) 0%, rgba(10,17,40,0.88) 50%, rgba(5,26,74,0.88) 100%)" }} />
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 25% 50%, #0972E1 0%, transparent 50%), radial-gradient(circle at 75% 20%, #FF8A00 0%, transparent 40%)" }} />
           <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
           <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center py-20">
@@ -145,15 +152,11 @@ export default function LandingPage() {
               <p className="text-white/60 max-w-xl mx-auto">DAH structure ses activités autour de quatre piliers qui forment l&apos;ADN de notre communauté.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {activities.map(({ icon: Icon, title, desc, image }) => (
-                <div key={title} className="group relative h-64 rounded-2xl overflow-hidden text-white hover:scale-105 transition-transform duration-200 cursor-default">
-                  <img src={image} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-orange via-brand-orange/85 to-brand-orange/40 group-hover:from-brand-orange/95 transition-colors duration-200" />
-                  <div className="relative h-full p-6 flex flex-col justify-end">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-4 group-hover:bg-white/30 transition-colors"><Icon size={22} /></div>
-                    <h3 className="font-semibold text-lg mb-2">{title}</h3>
-                    <p className="text-white/80 text-sm leading-relaxed">{desc}</p>
-                  </div>
+              {activities.map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="group bg-brand-orange rounded-2xl p-6 text-white hover:scale-105 transition-transform duration-200 cursor-default">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-white/30 transition-colors"><Icon size={22} /></div>
+                  <h3 className="font-semibold text-lg mb-2">{title}</h3>
+                  <p className="text-white/80 text-sm leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
@@ -282,8 +285,15 @@ export default function LandingPage() {
         </section>
 
         {/* CTA FINAL */}
-        <section className="bg-brand-blue py-20">
-          <div className="max-w-3xl mx-auto px-4 text-center text-white">
+        <section className="relative bg-brand-blue py-20 overflow-hidden">
+          <img
+            src="/images/collaboration-img.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/95 via-brand-blue/90 to-brand-navy/80" />
+          <div className="relative max-w-3xl mx-auto px-4 text-center text-white">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Prêt à rejoindre l&apos;aventure ?</h2>
             <p className="text-blue-100 mb-8 text-lg">Faites partie d&apos;une communauté qui façonne l&apos;avenir de la data en Afrique.</p>
             <Link href="/register" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-blue font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-lg">
