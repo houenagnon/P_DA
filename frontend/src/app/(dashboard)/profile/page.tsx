@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { membersService } from "@/services/members.service";
 import { avatarUrl, formatDate, roleLabel } from "@/lib/utils";
-import { Edit2, Plus, Trash2, ExternalLink, GitBranch, Link2, Globe, Check, X, Lock, AlertTriangle } from "lucide-react";
+import { Edit2, Plus, Trash2, ExternalLink, GitBranch, Link2, Globe, Check, X, Lock, AlertTriangle, Camera } from "lucide-react";
 import { authService } from "@/services/auth.service";
 import { useDeleteAccount } from "@/hooks/useAuth";
 import type { MemberProfile, MemberExperience, MemberCertification } from "@/types/members.types";
@@ -24,6 +24,22 @@ export default function ProfilePage() {
     mutationFn: (data: Partial<MemberProfile>) => membersService.updateProfile(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-profile"] }),
   });
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const updateAvatar = useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      return authService.updateMe(formData);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
+  });
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) updateAvatar.mutate(file);
+    e.target.value = "";
+  }
 
   const [editBio, setEditBio] = useState(false);
   const [bioValue, setBioValue] = useState("");
@@ -46,12 +62,21 @@ export default function ProfilePage() {
       {/* Identité */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="flex items-start gap-5">
-          <div className="relative">
+          <div className="relative shrink-0">
             <img
               src={user?.avatar ?? avatarUrl(user?.full_name ?? "U", 80)}
               alt={user?.full_name}
               className="w-20 h-20 rounded-2xl border-2 border-brand-blue object-cover"
             />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={updateAvatar.isPending}
+              title="Changer la photo de profil"
+              className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-brand-blue text-white rounded-full flex items-center justify-center border-2 border-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              <Camera size={12} />
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-bold text-brand-navy">{user?.full_name}</h2>

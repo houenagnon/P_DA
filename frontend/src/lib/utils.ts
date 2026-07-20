@@ -33,6 +33,10 @@ export function avatarUrl(name: string, size = 80): string {
   return `https://ui-avatars.com/api/?name=${encoded}&size=${size}&background=0972E1&color=fff&bold=true&format=svg`;
 }
 
+export function qrCodeUrl(data: string, size = 120): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`;
+}
+
 export function eventTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     webinaire: "Webinaire",

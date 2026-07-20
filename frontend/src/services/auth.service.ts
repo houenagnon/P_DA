@@ -14,8 +14,10 @@ export const authService = {
   me: () =>
     api.get<User>("/auth/me/"),
 
-  updateMe: (data: Partial<User>) =>
-    api.patch<User>("/auth/me/", data),
+  updateMe: (data: Partial<User> | FormData) =>
+    api.patch<User>("/auth/me/", data, {
+      headers: data instanceof FormData ? { "Content-Type": undefined } : undefined,
+    }),
 
   changePassword: (data: { old_password: string; new_password: string; new_password_confirm: string }) =>
     api.post("/auth/password/change/", data),

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { membersService } from "@/services/members.service";
-import { avatarUrl, formatDate, roleLabel } from "@/lib/utils";
+import { avatarUrl, formatDate, roleLabel, qrCodeUrl } from "@/lib/utils";
 import { Download, Share2, ExternalLink, Shield, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
@@ -22,6 +22,7 @@ export default function MemberCardPage() {
   const memberSince = profile?.created_at ? formatDate(profile.created_at) : "—";
   const memberNumber = profile?.member_number ?? null;
   const publicUrl = profile?.slug ? `/portfolio/${profile.slug}` : null;
+  const absolutePublicUrl = publicUrl && typeof window !== "undefined" ? window.location.origin + publicUrl : null;
 
   const handlePrint = () => window.print();
 
@@ -83,6 +84,7 @@ export default function MemberCardPage() {
             memberSince={memberSince}
             skills={profile?.skills ?? []}
             publicUrl={publicUrl}
+            absolutePublicUrl={absolutePublicUrl}
           />
         </div>
 
@@ -110,9 +112,10 @@ export default function MemberCardPage() {
   );
 }
 
-function MemberCard({ fullName, avatar, role, email, memberNumber, memberSince, skills, publicUrl }: {
+function MemberCard({ fullName, avatar, role, email, memberNumber, memberSince, skills, publicUrl, absolutePublicUrl }: {
   fullName: string; avatar: string; role: string; email: string;
-  memberNumber: string | null; memberSince: string; skills: string[]; publicUrl: string | null;
+  memberNumber: string | null; memberSince: string; skills: string[];
+  publicUrl: string | null; absolutePublicUrl: string | null;
 }) {
   return (
     <div id="member-card" className="w-[420px] select-none">
@@ -194,44 +197,28 @@ function MemberCard({ fullName, avatar, role, email, memberNumber, memberSince, 
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-white/40 text-xs">
-              <CalendarDays size={11} />
-              <span>Membre depuis {memberSince}</span>
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="flex items-center gap-1.5 text-white/40 text-xs">
+                <CalendarDays size={11} />
+                <span>Membre depuis {memberSince}</span>
+              </div>
+              {publicUrl && (
+                <p className="text-white/30 text-xs font-mono mt-1">dataafrique.hub{publicUrl}</p>
+              )}
             </div>
-            {publicUrl && (
-              <p className="text-white/30 text-xs font-mono">dataafrique.hub{publicUrl}</p>
+            {absolutePublicUrl && (
+              <div className="shrink-0 bg-white rounded-lg p-1.5">
+                <img src={qrCodeUrl(absolutePublicUrl, 64)} alt="QR code du profil" className="w-14 h-14 block" />
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Chip décoratif (bande magnétique) */}
-      <div className="mt-4 mx-4 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
-      {/* Verso simplifié */}
-      <div className="mt-4 rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Verso · Compétences</p>
-          <div className="w-5 h-5 rounded bg-brand-blue flex items-center justify-center">
-            <span className="text-white text-[9px] font-bold">DAH</span>
-          </div>
-        </div>
-        {skills.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {skills.map((s) => (
-              <span key={s} className="px-3 py-1 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-full">
-                {s}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-400 text-sm">Aucune compétence ajoutée.</p>
-        )}
-        <p className="text-xs text-gray-300 mt-4 text-center">
-          Ce document atteste de l&apos;appartenance à la communauté Data Afrique Hub
-        </p>
-      </div>
+      <p className="text-xs text-gray-400 mt-4 text-center max-w-[340px] mx-auto">
+        Ce document atteste de l&apos;appartenance à la communauté Data Afrique Hub. Scannez le QR code pour vérifier le profil.
+      </p>
     </div>
   );
 }
