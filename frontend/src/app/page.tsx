@@ -145,7 +145,7 @@ export default function LandingPage() {
         </section>
 
         {/* ACTIVITÉS */}
-        <section className="bg-white py-20">
+        <section className="bg-gray-50 py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-14">
               <span className="inline-block bg-brand-blue/10 text-brand-blue text-xs font-semibold px-3 py-1 rounded-full mb-4">
@@ -156,7 +156,7 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {activities.map(({ icon: Icon, title, desc, color }) => (
-                <div key={title} className="group bg-gray-50 rounded-2xl p-7 border border-gray-100 hover:border-transparent hover:bg-white hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
+                <div key={title} className="group bg-white rounded-2xl p-7 border border-gray-100 hover:border-transparent hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
                   <div className={`w-14 h-14 ${color} rounded-xl flex items-center justify-center text-white mb-5 group-hover:scale-110 transition-transform duration-200`}><Icon size={24} /></div>
                   <h3 className="font-semibold text-lg text-brand-navy mb-2">{title}</h3>
                   <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
@@ -168,7 +168,7 @@ export default function LandingPage() {
 
         {/* ÉVÉNEMENTS */}
         {upcomingEvents.length > 0 && (
-          <section className="bg-gray-50 py-20">
+          <section className="bg-white py-20">
             <div className="max-w-6xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-10">
                 <div>
@@ -204,7 +204,7 @@ export default function LandingPage() {
 
         {/* MEMBRES */}
         {featuredMembers.length > 0 && (
-          <section id="membres" className="bg-white py-20">
+          <section id="membres" className="bg-gray-50 py-20">
             <div className="max-w-6xl mx-auto px-4 sm:px-6">
               <div className="flex items-end justify-between mb-10">
                 <div>
