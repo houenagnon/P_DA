@@ -42,10 +42,10 @@ const testimonials = [
 ];
 
 const activities = [
-  { icon: BookOpen, title: "Apprentissage", desc: "Formations pratiques en Data Science, ML, IA et outils cloud pour tous les niveaux." },
-  { icon: Lightbulb, title: "Innovation", desc: "Hackathons et projets communautaires pour résoudre des problèmes africains par la data." },
-  { icon: Handshake, title: "Collaboration", desc: "Networking, mentoring et opportunités professionnelles au sein d'un réseau panafricain." },
-  { icon: FlaskConical, title: "Recherche", desc: "Publications, conférences et articles sur l'impact de la data en Afrique." },
+  { icon: BookOpen, title: "Apprentissage", desc: "Formations pratiques en Data Science, ML, IA et outils cloud pour tous les niveaux.", color: "bg-brand-blue" },
+  { icon: Lightbulb, title: "Innovation", desc: "Hackathons et projets communautaires pour résoudre des problèmes africains par la data.", color: "bg-brand-orange" },
+  { icon: Handshake, title: "Collaboration", desc: "Networking, mentoring et opportunités professionnelles au sein d'un réseau panafricain.", color: "bg-brand-navy" },
+  { icon: FlaskConical, title: "Recherche", desc: "Publications, conférences et articles sur l'impact de la data en Afrique.", color: "bg-violet-500" },
 ];
 
 const ROLE_ORDER: Record<string, number> = {
@@ -145,18 +145,21 @@ export default function LandingPage() {
         </section>
 
         {/* ACTIVITÉS */}
-        <section className="bg-brand-navy py-20">
+        <section className="bg-white py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-14">
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ce que nous faisons</h2>
-              <p className="text-white/60 max-w-xl mx-auto">DAH structure ses activités autour de quatre piliers qui forment l&apos;ADN de notre communauté.</p>
+              <span className="inline-block bg-brand-blue/10 text-brand-blue text-xs font-semibold px-3 py-1 rounded-full mb-4">
+                Nos piliers
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-brand-navy mb-4">Ce que nous faisons</h2>
+              <p className="text-gray-500 max-w-xl mx-auto">DAH structure ses activités autour de quatre piliers qui forment l&apos;ADN de notre communauté.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {activities.map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="group bg-brand-orange rounded-2xl p-6 text-white hover:scale-105 transition-transform duration-200 cursor-default">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-white/30 transition-colors"><Icon size={22} /></div>
-                  <h3 className="font-semibold text-lg mb-2">{title}</h3>
-                  <p className="text-white/80 text-sm leading-relaxed">{desc}</p>
+              {activities.map(({ icon: Icon, title, desc, color }) => (
+                <div key={title} className="group bg-gray-50 rounded-2xl p-7 border border-gray-100 hover:border-transparent hover:bg-white hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
+                  <div className={`w-14 h-14 ${color} rounded-xl flex items-center justify-center text-white mb-5 group-hover:scale-110 transition-transform duration-200`}><Icon size={24} /></div>
+                  <h3 className="font-semibold text-lg text-brand-navy mb-2">{title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
