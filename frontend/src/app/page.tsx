@@ -126,15 +126,17 @@ export default function LandingPage() {
         </section>
 
         {/* STATS */}
-        <section className="bg-white py-20">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <section className="relative bg-white py-20 overflow-hidden">
+          <div className="absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(circle at 10% 20%, #0972E110 0%, transparent 45%), radial-gradient(circle at 90% 80%, #FF8A0012 0%, transparent 45%)" }} />
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
               {[
-                { icon: Users, value: 30, suffix: "+", label: "Membres actifs", color: "text-brand-blue" },
-                { icon: BookOpen, value: 50, suffix: "+", label: "Personnes formées", color: "text-brand-orange" },
-                { icon: Globe, value: 10, suffix: "+", label: "Pays représentés", color: "text-brand-navy" },
-              ].map(({ icon: Icon, value, suffix, label, color }) => (
-                <div key={label} className="text-center p-8 rounded-2xl border border-gray-100 hover:shadow-lg transition-shadow">
+                { icon: Users, value: 30, suffix: "+", label: "Membres actifs", color: "text-brand-blue", bg: "bg-brand-blue" },
+                { icon: BookOpen, value: 50, suffix: "+", label: "Personnes formées", color: "text-brand-orange", bg: "bg-brand-orange" },
+                { icon: Globe, value: 10, suffix: "+", label: "Pays représentés", color: "text-brand-navy", bg: "bg-brand-navy" },
+              ].map(({ icon: Icon, value, suffix, label, color, bg }) => (
+                <div key={label} className="relative text-center p-8 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+                  <div className={`absolute top-0 left-0 right-0 h-1 ${bg}`} />
                   <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gray-50 mb-4 ${color}`}><Icon size={26} /></div>
                   <div className={`text-4xl font-bold mb-2 ${color}`}><AnimatedCounter target={value} suffix={suffix} /></div>
                   <p className="text-gray-500 text-sm font-medium">{label}</p>
@@ -168,20 +170,21 @@ export default function LandingPage() {
 
         {/* ÉVÉNEMENTS */}
         {upcomingEvents.length > 0 && (
-          <section className="bg-white py-20">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <section className="relative py-20 overflow-hidden" style={{ background: "linear-gradient(135deg, #04041A 0%, #071233 55%, #0c1a4a 100%)" }}>
+            <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "50px 50px" }} />
+            <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-10">
                 <div>
-                  <h2 className="text-3xl font-bold text-brand-navy mb-2">Prochains événements</h2>
-                  <p className="text-gray-500">Rejoignez-nous lors de nos prochains rendez-vous</p>
+                  <h2 className="text-3xl font-bold text-white mb-2">Prochains événements</h2>
+                  <p className="text-white/60">Rejoignez-nous lors de nos prochains rendez-vous</p>
                 </div>
-                <Link href="/events" className="hidden sm:inline-flex items-center gap-2 text-brand-blue font-medium hover:gap-3 transition-all text-sm">
+                <Link href="/events" className="hidden sm:inline-flex items-center gap-2 text-brand-orange font-medium hover:gap-3 transition-all text-sm">
                   Tous les événements <ChevronRight size={16} />
                 </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {upcomingEvents.map((event) => (
-                  <Link key={event.id} href={`/events/${event.id}`} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 group">
+                  <Link key={event.id} href={`/events/${event.id}`} className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group">
                     <div className="h-40 bg-gradient-to-br from-brand-navy to-brand-blue relative">
                       <div className="absolute inset-0 flex items-center justify-center opacity-20"><CalendarDays size={80} className="text-white" /></div>
                       <div className="absolute top-3 left-3">
