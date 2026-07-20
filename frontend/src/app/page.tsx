@@ -93,10 +93,10 @@ export default function LandingPage() {
             src="/images/innovation-img.png"
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-40"
+            className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(4,4,26,0.92) 0%, rgba(10,17,40,0.88) 50%, rgba(5,26,74,0.88) 100%)" }} />
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 25% 50%, #0972E1 0%, transparent 50%), radial-gradient(circle at 75% 20%, #FF8A00 0%, transparent 40%)" }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-brand-navy/60 via-brand-navy/50 to-brand-navy/85" />
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 25% 50%, #0972E1 0%, transparent 50%), radial-gradient(circle at 75% 20%, #FF8A00 0%, transparent 40%)" }} />
           <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
           <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center py-20">
             <div className="inline-flex items-center gap-2 bg-brand-blue/20 border border-brand-blue/30 rounded-full px-4 py-1.5 text-sm text-blue-300 mb-8">
@@ -290,9 +290,9 @@ export default function LandingPage() {
             src="/images/collaboration-img.png"
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-30"
+            className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/95 via-brand-blue/90 to-brand-navy/80" />
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/70 via-brand-blue/55 to-brand-navy/70" />
           <div className="relative max-w-3xl mx-auto px-4 text-center text-white">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Prêt à rejoindre l&apos;aventure ?</h2>
             <p className="text-blue-100 mb-8 text-lg">Faites partie d&apos;une communauté qui façonne l&apos;avenir de la data en Afrique.</p>
