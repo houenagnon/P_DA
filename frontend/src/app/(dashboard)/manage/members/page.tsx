@@ -142,6 +142,9 @@ export default function MembersPage() {
                     {member.member_number && (
                       <p className="text-brand-orange text-xs font-medium">{member.member_number}</p>
                     )}
+                    {canManageUsers && (
+                      <p className="text-gray-400 text-xs truncate">{member.email}</p>
+                    )}
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <Badge variant={ROLE_VARIANTS[member.role] ?? "gray"}>
                         {roleLabel(member.role)}

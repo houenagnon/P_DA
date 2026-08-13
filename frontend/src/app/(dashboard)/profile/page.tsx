@@ -34,6 +34,10 @@ export default function ProfilePage() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
   });
+  const removeAvatar = useMutation({
+    mutationFn: () => authService.updateMe({ avatar: null }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
+  });
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -68,6 +72,16 @@ export default function ProfilePage() {
               alt={user?.full_name}
               className="w-20 h-20 rounded-2xl border-2 border-brand-blue object-cover"
             />
+            {user?.avatar && (
+              <button
+                onClick={() => removeAvatar.mutate()}
+                disabled={removeAvatar.isPending}
+                title="Supprimer la photo de profil"
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center border-2 border-white hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                <X size={11} />
+              </button>
+            )}
             <button
               onClick={() => avatarInputRef.current?.click()}
               disabled={updateAvatar.isPending}
