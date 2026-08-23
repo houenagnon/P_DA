@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { BookOpen, Search, Calendar, Tag, User, Heart, MessageCircle } from "lucide-react";
+import { BookOpen, Search, Calendar, Tag, Heart, MessageCircle } from "lucide-react";
 import { blogService } from "@/services/blog.service";
 import { formatDate } from "@/lib/utils";
 import type { ArticleListItem } from "@/types/blog.types";
@@ -26,8 +26,7 @@ export default function BlogPage() {
     const matchSearch =
       !search ||
       a.title.toLowerCase().includes(q) ||
-      a.excerpt.toLowerCase().includes(q) ||
-      (a.author_name ?? "").toLowerCase().includes(q);
+      a.excerpt.toLowerCase().includes(q);
     const matchTag = !activeTag || a.tags_list.includes(activeTag);
     return matchSearch && matchTag;
   });
@@ -218,11 +217,6 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
 function ArticleMeta({ article }: { article: ArticleListItem }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
-      {article.author_name && (
-        <span className="flex items-center gap-1">
-          <User size={11} /> {article.author_name}
-        </span>
-      )}
       {article.published_at && (
         <span className="flex items-center gap-1">
           <Calendar size={11} /> {formatDate(article.published_at)}

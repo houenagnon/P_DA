@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { blogService } from "@/services/blog.service";
-import { isAdmin, isBureau } from "@/types/auth.types";
+import { isBureau } from "@/types/auth.types";
 import { formatDateTime, toDatetimeLocalValue } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Newspaper, Plus, Edit2, Trash2, X } from "lucide-react";
@@ -34,7 +34,7 @@ export default function ActualitesManagePage() {
   const [form, setForm] = useState<ArticleWritePayload>(emptyForm);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
-  const canManage = user && (isAdmin(user.role) || isBureau(user.role));
+  const canManage = isBureau(user);
 
   const { data, isLoading } = useQuery({
     queryKey: ["articles", "manage"],

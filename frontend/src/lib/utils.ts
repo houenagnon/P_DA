@@ -66,6 +66,17 @@ export function eventTypeBadgeVariant(type: string): "blue" | "orange" | "green"
 export function roleLabel(role: string): string {
   const labels: Record<string, string> = {
     admin: "Administrateur",
+    responsable: "Responsable",
+    membre: "Membre",
+    candidat: "Candidat",
+    visiteur: "Visiteur",
+  };
+  return labels[role] ?? role;
+}
+
+export function posteLabel(poste: string | null | undefined): string {
+  if (!poste) return "--";
+  const labels: Record<string, string> = {
     president: "Président",
     vp1: "Vice-Président 1",
     vp2: "Vice-Président 2",
@@ -73,14 +84,14 @@ export function roleLabel(role: string): string {
     secretaire_general_adj: "Secrétaire Général Adj.",
     tresorier: "Trésorier",
     tresorier_adj: "Trésorier Adj.",
-    responsable_departement: "Resp. Département",
-    formateur: "Formateur",
-    mentor: "Mentor",
-    membre: "Membre",
-    candidat: "Candidat",
-    visiteur: "Visiteur",
   };
-  return labels[role] ?? role;
+  return labels[poste] ?? poste;
+}
+
+/** Libellé affiché à côté du nom d'une personne : son poste au bureau s'il en a
+ * un (plus parlant que "Membre"), sinon son rôle d'accès. */
+export function positionLabel(person: { role: string; poste?: string | null }): string {
+  return person.poste ? posteLabel(person.poste) : roleLabel(person.role);
 }
 
 export function timeUntil(dateStr: string): string {

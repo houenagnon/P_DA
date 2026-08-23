@@ -4,36 +4,30 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { membersService } from "@/services/members.service";
 import { usersService } from "@/services/users.service";
-import { avatarUrl, roleLabel, cn } from "@/lib/utils";
+import { departmentsService } from "@/services/departments.service";
+import { avatarUrl, roleLabel, posteLabel, positionLabel, cn } from "@/lib/utils";
 import { Search, Users, ExternalLink, Pencil, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { isAdmin } from "@/types/auth.types";
+import { isAdmin, POSTES, type Poste } from "@/types/auth.types";
 import Link from "next/link";
 import type { MemberListItem } from "@/types/members.types";
+import type { Department } from "@/types/departments.types";
 
 const ROLE_VARIANTS: Record<string, "blue" | "orange" | "green" | "gray"> = {
   admin: "orange",
-  president: "orange",
-  vp1: "orange",
-  vp2: "orange",
-  secretaire_general: "orange",
-  tresorier: "orange",
-  formateur: "blue",
-  mentor: "blue",
+  responsable: "blue",
   membre: "green",
   candidat: "gray",
+  visiteur: "gray",
 };
 
-const ALL_ROLES = [
-  "admin", "president", "vp1", "vp2", "secretaire_general", "secretaire_general_adj",
-  "tresorier", "tresorier_adj", "responsable_departement", "formateur", "mentor",
-  "membre", "candidat", "visiteur",
-];
+const ALL_ROLES = ["admin", "responsable", "membre", "candidat", "visiteur"];
 
 export default function MembersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [editingMember, setEditingMember] = useState<MemberListItem | null>(null);
   const qc = useQueryClient();
 
@@ -41,10 +35,17 @@ export default function MembersPage() {
   const canManageUsers = !!currentUser && isAdmin(currentUser.role);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["members", "list"],
-    queryFn: () => membersService.list().then((r) => r.data),
+    queryKey: ["members", "list", departmentFilter],
+    queryFn: () => membersService.list(departmentFilter ? { department: departmentFilter } : undefined).then((r) => r.data),
     staleTime: 1000 * 60 * 2,
   });
+
+  const { data: departmentsData } = useQuery({
+    queryKey: ["departments", "list"],
+    queryFn: () => departmentsService.list().then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+  });
+  const departments: Department[] = Array.isArray(departmentsData) ? departmentsData : departmentsData?.results ?? [];
 
   const deleteMutation = useMutation({
     mutationFn: (userId: number) => usersService.delete(userId),
@@ -57,8 +58,6 @@ export default function MembersPage() {
     (!search || `${m.first_name} ${m.last_name}`.toLowerCase().includes(search.toLowerCase())) &&
     (!roleFilter || m.role === roleFilter)
   );
-
-  const uniqueRoles = [...new Set(all.map(m => m.role))].sort();
 
   return (
     <div className="space-y-6">
@@ -81,7 +80,11 @@ export default function MembersPage() {
         </div>
         <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white">
           <option value="">Tous les rôles</option>
-          {uniqueRoles.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
+          {ALL_ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
+        </select>
+        <select value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)} className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white">
+          <option value="">Tous les départements</option>
+          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
       </div>
 
@@ -147,8 +150,11 @@ export default function MembersPage() {
                     )}
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <Badge variant={ROLE_VARIANTS[member.role] ?? "gray"}>
-                        {roleLabel(member.role)}
+                        {positionLabel(member)}
                       </Badge>
+                      {member.department && (
+                        <Badge variant="gray">{member.department.name}</Badge>
+                      )}
                       {!member.is_active && <Badge variant="red">Désactivé</Badge>}
                     </div>
                   </div>
@@ -178,6 +184,7 @@ export default function MembersPage() {
       {editingMember && (
         <EditMemberModal
           member={editingMember}
+          departments={departments}
           onClose={() => setEditingMember(null)}
           onSaved={() => setEditingMember(null)}
         />
@@ -188,10 +195,12 @@ export default function MembersPage() {
 
 function EditMemberModal({
   member,
+  departments,
   onClose,
   onSaved,
 }: {
   member: MemberListItem;
+  departments: Department[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -199,6 +208,8 @@ function EditMemberModal({
   const [firstName, setFirstName] = useState(member.first_name);
   const [lastName, setLastName] = useState(member.last_name);
   const [role, setRole] = useState(member.role);
+  const [poste, setPoste] = useState<Poste | "">(member.poste as Poste | "" ?? "");
+  const [departmentId, setDepartmentId] = useState<string>(member.department ? String(member.department.id) : "");
   const [isActive, setIsActive] = useState(member.is_active);
 
   const updateMutation = useMutation({
@@ -207,6 +218,8 @@ function EditMemberModal({
         first_name: firstName,
         last_name: lastName,
         role,
+        poste: poste || null,
+        department_id: departmentId ? Number(departmentId) : null,
         is_active: isActive,
       }),
     onSuccess: () => {
@@ -217,7 +230,7 @@ function EditMemberModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-brand-navy">Modifier {member.first_name} {member.last_name}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -253,6 +266,30 @@ function EditMemberModal({
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
             >
               {ALL_ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Poste dans DAH</label>
+            <select
+              value={poste}
+              onChange={e => setPoste(e.target.value as Poste | "")}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
+            >
+              <option value="">-- (aucun)</option>
+              {POSTES.map(p => <option key={p} value={p}>{posteLabel(p)}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Département</label>
+            <select
+              value={departmentId}
+              onChange={e => setDepartmentId(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 bg-white"
+            >
+              <option value="">Aucun</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </div>
 

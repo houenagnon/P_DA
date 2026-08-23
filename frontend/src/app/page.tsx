@@ -7,7 +7,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { eventsService } from "@/services/events.service";
 import { membersService } from "@/services/members.service";
-import { formatDate, eventTypeLabel, avatarUrl, roleLabel } from "@/lib/utils";
+import { formatDate, eventTypeLabel, avatarUrl, positionLabel } from "@/lib/utils";
 import { CalendarDays, MapPin, ArrowRight, Users, Globe, BookOpen, Lightbulb, Handshake, FlaskConical, Star, ChevronRight } from "lucide-react";
 import type { Event } from "@/types/events.types";
 import type { PublicMemberListItem } from "@/types/members.types";
@@ -48,22 +48,25 @@ const activities = [
   { icon: FlaskConical, title: "Recherche", desc: "Publications, conférences et articles sur l'impact de la data en Afrique.", color: "bg-violet-500" },
 ];
 
-const ROLE_ORDER: Record<string, number> = {
+const POSTE_ORDER: Record<string, number> = {
   president: 1, vp1: 2, vp2: 3,
   secretaire_general: 4, secretaire_general_adj: 5,
   tresorier: 6, tresorier_adj: 7,
-  responsable_departement: 8, formateur: 9, mentor: 10,
-  membre: 11, candidat: 12,
 };
+const ROLE_ORDER: Record<string, number> = { admin: 0, responsable: 20, membre: 21, candidat: 22, visiteur: 23 };
 
-function roleBadgeColor(role: string) {
-  const map: Record<string, string> = {
+function memberSortRank(m: Pick<PublicMemberListItem, "role" | "poste">): number {
+  return m.poste ? (POSTE_ORDER[m.poste] ?? 15) : (ROLE_ORDER[m.role] ?? 30);
+}
+
+function roleBadgeColor(member: Pick<PublicMemberListItem, "role" | "poste">) {
+  const posteMap: Record<string, string> = {
     president: "bg-brand-orange", vp1: "bg-brand-orange", vp2: "bg-brand-orange",
     secretaire_general: "bg-purple-500", tresorier: "bg-green-500",
-    formateur: "bg-indigo-500", mentor: "bg-violet-500",
-    membre: "bg-brand-blue", candidat: "bg-gray-400",
   };
-  return map[role] ?? "bg-gray-400";
+  if (member.poste) return posteMap[member.poste] ?? "bg-gray-400";
+  const roleMap: Record<string, string> = { responsable: "bg-teal-500", membre: "bg-brand-blue", candidat: "bg-gray-400" };
+  return roleMap[member.role] ?? "bg-gray-400";
 }
 
 export default function LandingPage() {
@@ -80,7 +83,7 @@ export default function LandingPage() {
   const all: Event[] = eventsData?.results ?? eventsData ?? [];
   const upcomingEvents = all.filter((e) => new Date(e.start_date) > new Date()).slice(0, 3);
   const featuredMembers: PublicMemberListItem[] = (membersData?.results ?? [])
-    .sort((a: PublicMemberListItem, b: PublicMemberListItem) => (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99))
+    .sort((a: PublicMemberListItem, b: PublicMemberListItem) => memberSortRank(a) - memberSortRank(b))
     .slice(0, 6);
 
   return (
@@ -234,11 +237,11 @@ export default function LandingPage() {
                           alt={fullName}
                           className="w-14 h-14 rounded-xl object-cover border-2 border-gray-100 group-hover:border-brand-blue/30 transition-colors"
                         />
-                        <div className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white ${roleBadgeColor(member.role)}`} />
+                        <div className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white ${roleBadgeColor(member)}`} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-brand-navy group-hover:text-brand-blue transition-colors text-sm leading-tight">{fullName}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{roleLabel(member.role)}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{positionLabel(member)}</p>
                         {member.current_job && (
                           <p className="text-xs text-gray-500 mt-1 truncate">
                             {member.current_job.title}

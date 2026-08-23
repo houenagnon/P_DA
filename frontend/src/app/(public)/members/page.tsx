@@ -2,28 +2,41 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { membersService } from "@/services/members.service";
-import { avatarUrl, roleLabel } from "@/lib/utils";
+import { departmentsService } from "@/services/departments.service";
+import { avatarUrl, positionLabel } from "@/lib/utils";
 import { Users, Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { PublicMemberListItem } from "@/types/members.types";
+import type { Department } from "@/types/departments.types";
 
-const ROLE_ORDER: Record<string, number> = {
+const POSTE_ORDER: Record<string, number> = {
   president: 1, vp1: 2, vp2: 3,
   secretaire_general: 4, secretaire_general_adj: 5,
   tresorier: 6, tresorier_adj: 7,
-  responsable_departement: 8, formateur: 9, mentor: 10,
-  membre: 11, candidat: 12,
 };
+const ROLE_ORDER: Record<string, number> = { admin: 0, responsable: 20, membre: 21, candidat: 22, visiteur: 23 };
+
+function sortRank(m: Pick<PublicMemberListItem, "role" | "poste">): number {
+  return m.poste ? (POSTE_ORDER[m.poste] ?? 15) : (ROLE_ORDER[m.role] ?? 30);
+}
 
 export default function MembersPage() {
   const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["members", "public-list"],
-    queryFn: () => membersService.publicList().then((r) => r.data),
+    queryKey: ["members", "public-list", departmentFilter],
+    queryFn: () => membersService.publicList(departmentFilter ? { department: departmentFilter } : undefined).then((r) => r.data),
     staleTime: 1000 * 60 * 5,
   });
+
+  const { data: departmentsData } = useQuery({
+    queryKey: ["departments", "list"],
+    queryFn: () => departmentsService.list().then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+  });
+  const departments: Department[] = Array.isArray(departmentsData) ? departmentsData : departmentsData?.results ?? [];
 
   const members: PublicMemberListItem[] = data?.results ?? [];
 
@@ -33,10 +46,10 @@ export default function MembersPage() {
       return (
         `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
         m.skills.some((s) => s.toLowerCase().includes(q)) ||
-        roleLabel(m.role).toLowerCase().includes(q)
+        positionLabel(m).toLowerCase().includes(q)
       );
     })
-    .sort((a, b) => (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99));
+    .sort((a, b) => sortRank(a) - sortRank(b));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -57,16 +70,26 @@ export default function MembersPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        {/* Search */}
-        <div className="relative mb-8 max-w-md">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Rechercher par nom, compétence, rôle…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-white"
-          />
+        {/* Search & filtres */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-8">
+          <div className="relative flex-1 max-w-md">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom, compétence, rôle…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-white"
+            />
+          </div>
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 bg-white"
+          >
+            <option value="">Tous les départements</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
         </div>
 
         {/* Grid */}
@@ -79,7 +102,7 @@ export default function MembersPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <Users size={40} className="mx-auto mb-3 opacity-30" />
-            <p>Aucun membre trouvé pour &quot;{search}&quot;</p>
+            <p>Aucun membre trouvé{search && ` pour "${search}"`}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -111,14 +134,17 @@ function MemberCard({ member }: { member: PublicMemberListItem }) {
             className="w-14 h-14 rounded-xl object-cover border-2 border-gray-100 group-hover:border-brand-blue/30 transition-colors"
           />
           <div className={`absolute -bottom-1.5 -right-1.5 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow leading-none ${
-            roleBadgeColor(member.role)
+            roleBadgeColor(member)
           }`}>
-            {roleShort(member.role)}
+            {roleShort(member)}
           </div>
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-brand-navy group-hover:text-brand-blue transition-colors leading-tight">{fullName}</p>
-          <p className="text-xs text-gray-400 mt-0.5">{roleLabel(member.role)}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{positionLabel(member)}</p>
+          {member.department && (
+            <p className="text-xs text-brand-blue/70 mt-0.5">{member.department.name}</p>
+          )}
           {member.current_job && (
             <p className="text-xs text-gray-500 mt-1 truncate">
               {member.current_job.title}
@@ -152,8 +178,8 @@ function MemberCard({ member }: { member: PublicMemberListItem }) {
   );
 }
 
-function roleBadgeColor(role: string) {
-  const map: Record<string, string> = {
+function roleBadgeColor(member: Pick<PublicMemberListItem, "role" | "poste">) {
+  const posteMap: Record<string, string> = {
     president: "bg-brand-orange",
     vp1: "bg-brand-orange",
     vp2: "bg-brand-orange",
@@ -161,28 +187,22 @@ function roleBadgeColor(role: string) {
     secretaire_general_adj: "bg-purple-400",
     tresorier: "bg-green-500",
     tresorier_adj: "bg-green-400",
-    responsable_departement: "bg-teal-500",
-    formateur: "bg-indigo-500",
-    mentor: "bg-violet-500",
-    membre: "bg-brand-blue",
-    candidat: "bg-gray-400",
   };
-  return map[role] ?? "bg-gray-400";
+  if (member.poste) return posteMap[member.poste] ?? "bg-gray-400";
+  const roleMap: Record<string, string> = { responsable: "bg-teal-500", membre: "bg-brand-blue", candidat: "bg-gray-400" };
+  return roleMap[member.role] ?? "bg-gray-400";
 }
 
-function roleShort(role: string) {
-  const map: Record<string, string> = {
+function roleShort(member: Pick<PublicMemberListItem, "role" | "poste">) {
+  const posteMap: Record<string, string> = {
     president: "PDT",
     vp1: "VP", vp2: "VP",
     secretaire_general: "SG",
     secretaire_general_adj: "SGA",
     tresorier: "TRES",
     tresorier_adj: "TRESA",
-    responsable_departement: "RD",
-    formateur: "FORM",
-    mentor: "MNT",
-    membre: "MBR",
-    candidat: "CAND",
   };
-  return map[role] ?? role.toUpperCase().slice(0, 4);
+  if (member.poste) return posteMap[member.poste] ?? member.poste.toUpperCase().slice(0, 4);
+  const roleMap: Record<string, string> = { responsable: "RESP", membre: "MBR", candidat: "CAND" };
+  return roleMap[member.role] ?? member.role.toUpperCase().slice(0, 4);
 }

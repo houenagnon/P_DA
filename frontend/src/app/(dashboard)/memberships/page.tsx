@@ -30,7 +30,7 @@ export default function CandidaturesPage() {
   const [statusFilter, setStatusFilter] = useState<CandidatureStatus | "">("");
   const [search, setSearch] = useState("");
 
-  const canManage = user && (isAdmin(user.role) || user.role === "president");
+  const canManage = user && (isAdmin(user.role) || user.poste === "president");
 
   const { data: all = [], isLoading } = useQuery({
     queryKey: ["candidatures"],

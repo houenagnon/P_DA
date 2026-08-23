@@ -8,7 +8,7 @@ import { membersService } from "@/services/members.service";
 import { membershipsService } from "@/services/memberships.service";
 import { Users, CalendarDays, Award, FileText, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
 import { isAdmin, isBureau } from "@/types/auth.types";
-import { formatDate, roleLabel, avatarUrl } from "@/lib/utils";
+import { formatDate, positionLabel, avatarUrl } from "@/lib/utils";
 import type { Event } from "@/types/events.types";
 import type { CandidatureList } from "@/types/memberships.types";
 
@@ -24,13 +24,13 @@ export function DashboardHome() {
   const { data: membersData } = useQuery({
     queryKey: ["members", "list"],
     queryFn: () => membersService.list().then((r) => r.data),
-    enabled: !!user && (isAdmin(user.role) || isBureau(user.role)),
+    enabled: isBureau(user),
   });
 
   const { data: membershipData } = useQuery({
     queryKey: ["candidatures", "pending"],
     queryFn: () => membershipsService.listCandidatures({ status: "pending" }).then((r) => r.data),
-    enabled: !!user && (isAdmin(user.role) || user.role === "president"),
+    enabled: !!user && (isAdmin(user.role) || user.poste === "president"),
   });
 
   const { data: myProfile } = useQuery({
@@ -48,7 +48,7 @@ export function DashboardHome() {
   const pendingCandidatures: CandidatureList[] = membershipData ?? [];
 
   const isAdminUser = user && isAdmin(user.role);
-  const isBureauUser = user && isBureau(user.role);
+  const isBureauUser = isBureau(user);
 
   return (
     <div className="space-y-6">
@@ -59,7 +59,7 @@ export function DashboardHome() {
             Bonjour, {user?.first_name} !
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            {roleLabel(user?.role ?? "")} · {formatDate(new Date().toISOString())}
+            {user ? positionLabel(user) : ""} · {formatDate(new Date().toISOString())}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export function DashboardHome() {
           </Link>
         )}
 
-        {(isAdminUser || user?.role === "president") && (
+        {(isAdminUser || user?.poste === "president") && (
           <Link href="/memberships" className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
             <div className="p-2.5 rounded-xl bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
               <FileText size={20} />

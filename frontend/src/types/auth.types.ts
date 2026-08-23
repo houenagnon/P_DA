@@ -1,9 +1,16 @@
-export type Role =
-  | "admin" | "president" | "vp1" | "vp2"
+export type Role = "admin" | "responsable" | "membre" | "candidat" | "visiteur";
+
+export type Poste =
+  | "president" | "vp1" | "vp2"
   | "secretaire_general" | "secretaire_general_adj"
-  | "tresorier" | "tresorier_adj"
-  | "responsable_departement" | "formateur" | "mentor"
-  | "membre" | "candidat" | "visiteur";
+  | "tresorier" | "tresorier_adj";
+
+export interface UserDepartment {
+  id: number;
+  name: string;
+  start_date: string;
+  end_date: string | null;
+}
 
 export interface User {
   id: number;
@@ -14,6 +21,8 @@ export interface User {
   phone: string;
   avatar: string | null;
   role: Role;
+  poste: Poste | null;
+  department: UserDepartment | null;
   email_verified: boolean;
   created_at: string;
 }
@@ -38,14 +47,16 @@ export interface RegisterPayload {
   password_confirm: string;
 }
 
-export const BUREAU_ROLES: Role[] = [
+export const POSTES: Poste[] = [
   "president", "vp1", "vp2",
   "secretaire_general", "secretaire_general_adj",
   "tresorier", "tresorier_adj",
 ];
 
-export function isBureau(role: Role): boolean {
-  return BUREAU_ROLES.includes(role);
+/** Un membre du bureau est quiconque a un poste (Président, VP, ...) ou est admin. */
+export function isBureau(user: Pick<User, "role" | "poste"> | null | undefined): boolean {
+  if (!user) return false;
+  return user.poste !== null || user.role === "admin";
 }
 
 export function isAdmin(role: Role): boolean {

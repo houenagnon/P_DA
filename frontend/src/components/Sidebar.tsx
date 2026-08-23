@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, CalendarDays, FileText, Settings, ChevronLeft, ChevronRight, Home, CreditCard, Building2, Newspaper } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, FileText, Settings, ChevronLeft, ChevronRight, Home, CreditCard, Building2, Newspaper, FolderKanban } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { isAdmin, isBureau } from "@/types/auth.types";
 
@@ -14,6 +14,7 @@ const allNavItems = [
   { href: "/manage/departments", label: "Départements", icon: Building2, roles: "bureau" },
   { href: "/manage/actualites", label: "Actualités", icon: Newspaper, roles: "bureau" },
   { href: "/my-department", label: "Mon département", icon: Building2, roles: "all" },
+  { href: "/projects", label: "Projets", icon: FolderKanban, roles: "all" },
   { href: "/memberships", label: "Candidatures", icon: FileText, roles: "admin_president" },
   { href: "/member-card", label: "Ma carte", icon: CreditCard, roles: "all" },
 ];
@@ -25,8 +26,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
 
   const navItems = allNavItems.filter(item => {
     if (item.roles === "all") return true;
-    if (item.roles === "bureau") return user && (isAdmin(user.role) || isBureau(user.role));
-    if (item.roles === "admin_president") return user && (isAdmin(user.role) || user.role === "president");
+    if (item.roles === "bureau") return isBureau(user);
+    if (item.roles === "admin_president") return user && (isAdmin(user.role) || user.poste === "president");
     return true;
   });
 

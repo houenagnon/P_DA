@@ -28,7 +28,7 @@ export default function CandidatureDetailPage({
   const qc = useQueryClient();
   const router = useRouter();
   const { data: user } = useCurrentUser();
-  const canManage = user && (isAdmin(user.role) || user.role === "president");
+  const canManage = user && (isAdmin(user.role) || user.poste === "president");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 

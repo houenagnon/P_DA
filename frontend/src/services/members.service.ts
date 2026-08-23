@@ -6,8 +6,8 @@ export const membersService = {
   list: (params?: Record<string, string>) =>
     api.get("/members/", { params }),
 
-  publicList: () =>
-    api.get<PaginatedResponse<PublicMemberListItem>>("/members/public/"),
+  publicList: (params?: Record<string, string>) =>
+    api.get<PaginatedResponse<PublicMemberListItem>>("/members/public/", { params }),
 
   myProfile: () =>
     api.get("/members/me/profile/"),

@@ -5,22 +5,28 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { eventsService } from "@/services/events.service";
 import { formatDateTime } from "@/lib/utils";
 import { avatarUrl } from "@/lib/utils";
-import { Users, CheckCircle, Circle, ArrowLeft, Download } from "lucide-react";
+import { Users, CheckCircle, Circle, ArrowLeft, Download, ShieldAlert } from "lucide-react";
 import Link from "next/link";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { isBureau } from "@/types/auth.types";
 import type { EventParticipant } from "@/types/events.types";
 
 export default function EventParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const qc = useQueryClient();
+  const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser();
 
   const { data: event } = useQuery({
     queryKey: ["event", id],
     queryFn: () => eventsService.get(id).then((r) => r.data),
   });
 
+  const canView = isBureau(currentUser);
+
   const { data: participants = [], isLoading } = useQuery({
     queryKey: ["event-participants", id],
     queryFn: () => eventsService.participants(id).then((r) => r.data),
+    enabled: canView,
   });
 
   const validatePresence = useMutation({
@@ -40,6 +46,15 @@ export default function EventParticipantsPage({ params }: { params: Promise<{ id
       a.click();
       window.URL.revokeObjectURL(url);
     });
+  }
+
+  if (!isLoadingUser && !canView) {
+    return (
+      <div className="text-center py-20 text-gray-400">
+        <ShieldAlert size={40} className="mx-auto mb-3 opacity-30" />
+        <p>Accès réservé aux administrateurs et au bureau.</p>
+      </div>
+    );
   }
 
   return (

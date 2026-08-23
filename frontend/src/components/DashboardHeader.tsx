@@ -3,7 +3,7 @@
 import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { LogOut, Menu } from "lucide-react";
 import Link from "next/link";
-import { avatarUrl, roleLabel } from "@/lib/utils";
+import { avatarUrl, positionLabel } from "@/lib/utils";
 
 export function DashboardHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const { data: user } = useCurrentUser();
@@ -23,7 +23,7 @@ export function DashboardHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           {user && (
             <span>
               <span className="font-medium text-brand-navy">{user.first_name}</span>
-              {" "}· {roleLabel(user.role)}
+              {" "}· {positionLabel(user)}
             </span>
           )}
         </div>

@@ -6,8 +6,6 @@ import Link from "next/link";
 import { departmentsService } from "@/services/departments.service";
 import { formatDate, avatarUrl } from "@/lib/utils";
 import { MemberSearchSelect } from "@/components/MemberSearchSelect";
-import { AnnouncementsPanel } from "@/features/departments/AnnouncementsPanel";
-import { SessionsPanel } from "@/features/departments/SessionsPanel";
 import { TasksPanel } from "@/features/departments/TasksPanel";
 import { ArrowLeft, Users, UserPlus, CircleX, Trash2 } from "lucide-react";
 import type { MemberListItem } from "@/types/members.types";
@@ -18,9 +16,7 @@ function todayIso() {
 
 const TABS = [
   { key: "members", label: "Membres" },
-  { key: "announcements", label: "Annonces" },
-  { key: "sessions", label: "Séances" },
-  { key: "tasks", label: "Tâches" },
+  { key: "tasks", label: "To-do" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
@@ -211,15 +207,6 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
         </div>
-      )}
-
-      {tab === "announcements" && <AnnouncementsPanel departmentId={departmentId} />}
-
-      {tab === "sessions" && (
-        <SessionsPanel
-          departmentId={departmentId}
-          departmentMembers={current.map((m) => ({ user_id: m.user_id, name: m.user_full_name }))}
-        />
       )}
 
       {tab === "tasks" && <TasksPanel departmentId={departmentId} departmentMembers={departmentMembers} />}

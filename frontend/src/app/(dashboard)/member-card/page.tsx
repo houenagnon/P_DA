@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { membersService } from "@/services/members.service";
-import { avatarUrl, formatDate, roleLabel, qrCodeUrl } from "@/lib/utils";
+import { avatarUrl, formatDate, positionLabel, qrCodeUrl } from "@/lib/utils";
 import { Download, Share2, ExternalLink, Shield, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
@@ -79,6 +79,7 @@ export default function MemberCardPage() {
             fullName={fullName}
             avatar={avatar}
             role={user.role}
+            poste={user.poste}
             email={user.email}
             memberNumber={memberNumber}
             memberSince={memberSince}
@@ -112,8 +113,8 @@ export default function MemberCardPage() {
   );
 }
 
-function MemberCard({ fullName, avatar, role, email, memberNumber, memberSince, skills, publicUrl, absolutePublicUrl }: {
-  fullName: string; avatar: string; role: string; email: string;
+function MemberCard({ fullName, avatar, role, poste, email, memberNumber, memberSince, skills, publicUrl, absolutePublicUrl }: {
+  fullName: string; avatar: string; role: string; poste: string | null; email: string;
   memberNumber: string | null; memberSince: string; skills: string[];
   publicUrl: string | null; absolutePublicUrl: string | null;
 }) {
@@ -175,7 +176,7 @@ function MemberCard({ fullName, avatar, role, email, memberNumber, memberSince, 
             {/* Info */}
             <div className="flex-1 min-w-0 pb-1">
               <h2 className="text-xl font-bold leading-tight truncate">{fullName}</h2>
-              <p className="text-brand-orange font-medium text-sm mt-0.5">{roleLabel(role)}</p>
+              <p className="text-brand-orange font-medium text-sm mt-0.5">{positionLabel({ role, poste })}</p>
               <p className="text-white/40 text-xs mt-1 truncate">{email}</p>
 
               {/* Skills preview */}

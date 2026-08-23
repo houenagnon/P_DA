@@ -126,7 +126,7 @@ export function TasksPanel({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-brand-navy text-sm">{t.title}</p>
                   <p className="text-gray-400 text-xs">
-                    {t.assigned_to_name ?? "Non assignée"}
+                    {t.assigned_to_name ?? "Non assignée"} · assignée le {formatDate(t.created_at)}
                     {t.due_date && ` · échéance ${formatDate(t.due_date)}`}
                   </p>
                   {t.description && <p className="text-gray-500 text-xs mt-1">{t.description}</p>}

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { membersService } from "@/services/members.service";
-import { avatarUrl, formatDate, roleLabel } from "@/lib/utils";
+import { avatarUrl, formatDate, positionLabel } from "@/lib/utils";
 import { Edit2, Plus, Trash2, ExternalLink, GitBranch, Link2, Globe, Check, X, Lock, AlertTriangle, Camera } from "lucide-react";
 import { authService } from "@/services/auth.service";
 import { useDeleteAccount } from "@/hooks/useAuth";
@@ -94,7 +94,10 @@ export default function ProfilePage() {
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-bold text-brand-navy">{user?.full_name}</h2>
-            <p className="text-brand-orange font-medium text-sm">{roleLabel(user?.role ?? "")}</p>
+            <p className="text-brand-orange font-medium text-sm">{user ? positionLabel(user) : ""}</p>
+            {user?.department && (
+              <p className="text-gray-400 text-xs mt-0.5">{user.department.name}</p>
+            )}
             {profile?.member_number && (
               <span className="inline-block mt-1 text-xs bg-brand-navy text-white px-2.5 py-0.5 rounded-full">
                 {profile.member_number}

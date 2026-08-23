@@ -24,6 +24,13 @@ export interface SocialLink {
   url: string;
 }
 
+export interface MemberDepartment {
+  id: number;
+  name: string;
+  start_date: string;
+  end_date: string | null;
+}
+
 export interface MemberListItem {
   id: number;
   user_id: number;
@@ -33,9 +40,11 @@ export interface MemberListItem {
   email: string;
   avatar: string | null;
   role: string;
+  poste: string | null;
   is_active: boolean;
   skills: string[];
   member_number: string | null;
+  department: MemberDepartment | null;
 }
 
 export interface MemberProfile {
@@ -67,11 +76,14 @@ export interface PublicMemberListItem {
   last_name: string;
   avatar: string | null;
   role: string;
+  poste: string | null;
   skills: string[];
   current_job: { title: string; company: string } | null;
+  department: MemberDepartment | null;
 }
 
 export interface PublicProfileDepartment {
+  id: number;
   name: string;
   start_date: string;
   end_date: string | null;
@@ -88,6 +100,7 @@ export interface PublicProfile {
   last_name: string;
   avatar: string | null;
   role: string;
+  poste: string | null;
   department: PublicProfileDepartment | null;
   experiences: MemberExperience[];
   certifications: MemberCertification[];

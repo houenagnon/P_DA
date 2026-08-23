@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, Tag, BookOpen, Heart, MessageCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Tag, BookOpen, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { blogService } from "@/services/blog.service";
 import { formatDate, formatDateTime, avatarUrl } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useAuth";
@@ -82,11 +82,6 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
 
             {/* Meta */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-400 pb-6 border-b border-gray-100 mb-8">
-              {article.author_name && (
-                <span className="flex items-center gap-1.5">
-                  <User size={14} /> {article.author_name}
-                </span>
-              )}
               {article.published_at && (
                 <span className="flex items-center gap-1.5">
                   <Calendar size={14} /> {formatDate(article.published_at)}

@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import type { MemberDepartment } from "@/types/members.types";
 
 export interface AdminUser {
   id: number;
@@ -8,6 +9,8 @@ export interface AdminUser {
   full_name: string;
   phone: string;
   role: string;
+  poste: string | null;
+  department: MemberDepartment | null;
   is_active: boolean;
   email_verified: boolean;
   created_at: string;
@@ -18,6 +21,10 @@ export interface AdminUserUpdatePayload {
   last_name?: string;
   phone?: string;
   role?: string;
+  poste?: string | null;
+  /** Rattache l'utilisateur à ce département (nouvelle adhésion datée d'aujourd'hui),
+   * ou le retire de son département actuel si null. Omis = ne pas toucher. */
+  department_id?: number | null;
   is_active?: boolean;
 }
 

@@ -3,7 +3,7 @@
 import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersService } from "@/services/members.service";
-import { avatarUrl, formatDate, roleLabel } from "@/lib/utils";
+import { avatarUrl, formatDate, positionLabel } from "@/lib/utils";
 import { ExternalLink, MapPin, Award, Briefcase, Calendar } from "lucide-react";
 import Link from "next/link";
 import type { PublicProfile, MemberExperience, MemberCertification } from "@/types/members.types";
@@ -35,11 +35,9 @@ export default function PortfolioPage({ params }: { params: Promise<{ slug: stri
                 alt={fullName}
                 className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl border-4 border-white/20 object-cover shadow-2xl"
               />
-              {profile.role === "membre" || profile.role === "mentor" || profile.role === "formateur" ? (
-                <div className="absolute -bottom-2 -right-2 bg-brand-orange text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">
-                  {roleLabel(profile.role)}
-                </div>
-              ) : null}
+              <div className="absolute -bottom-2 -right-2 bg-brand-orange text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">
+                {positionLabel(profile)}
+              </div>
             </div>
             <div className="text-center sm:text-left pb-1">
               <h1 className="text-3xl sm:text-4xl font-bold">{fullName}</h1>

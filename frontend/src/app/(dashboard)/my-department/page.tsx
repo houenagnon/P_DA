@@ -3,8 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { departmentsService } from "@/services/departments.service";
-import { formatDate, formatDateTime } from "@/lib/utils";
-import { Building2, Megaphone, CalendarClock, ListChecks, Settings } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import { Building2, ListChecks, Settings } from "lucide-react";
 import type { TaskStatus } from "@/types/departments.types";
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -48,7 +48,7 @@ export default function MyDepartmentPage() {
     );
   }
 
-  const { department, since, can_manage, announcements, sessions, my_tasks } = data;
+  const { department, since, can_manage, my_tasks } = data;
 
   return (
     <div className="space-y-6">
@@ -85,7 +85,10 @@ export default function MyDepartmentPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-brand-navy text-sm">{t.title}</p>
                   {t.description && <p className="text-gray-500 text-xs mt-0.5">{t.description}</p>}
-                  {t.due_date && <p className="text-gray-400 text-xs mt-0.5">Échéance : {formatDate(t.due_date)}</p>}
+                  <p className="text-gray-400 text-xs mt-0.5">
+                    Assignée le {formatDate(t.created_at)}
+                    {t.due_date && ` · échéance ${formatDate(t.due_date)}`}
+                  </p>
                 </div>
                 <select
                   value={t.status}
@@ -94,49 +97,6 @@ export default function MyDepartmentPage() {
                 >
                   {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Séances */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
-          <CalendarClock size={16} className="text-brand-blue" />
-          <span className="font-medium text-brand-navy text-sm">Séances ({sessions.length})</span>
-        </div>
-        {sessions.length === 0 ? (
-          <div className="py-8 text-center text-gray-400 text-sm">Aucune séance planifiée</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {sessions.map((s) => (
-              <div key={s.id} className="px-5 py-4">
-                <p className="font-medium text-brand-navy text-sm">{formatDate(s.date)}{s.theme && ` — ${s.theme}`}</p>
-                {s.report && <p className="text-gray-600 text-sm mt-1 whitespace-pre-line">{s.report}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Annonces */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
-          <Megaphone size={16} className="text-brand-blue" />
-          <span className="font-medium text-brand-navy text-sm">Annonces ({announcements.length})</span>
-        </div>
-        {announcements.length === 0 ? (
-          <div className="py-8 text-center text-gray-400 text-sm">Aucune annonce pour l&apos;instant</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {announcements.map((a) => (
-              <div key={a.id} className="px-5 py-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-brand-navy text-sm">{a.title}</p>
-                  <span className="text-xs text-gray-400">{formatDateTime(a.created_at)}</span>
-                </div>
-                <p className="text-gray-600 text-sm mt-1 whitespace-pre-line">{a.content}</p>
               </div>
             ))}
           </div>

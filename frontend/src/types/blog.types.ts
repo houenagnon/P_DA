@@ -10,7 +10,6 @@ export interface ArticleListItem {
   title: string;
   excerpt: string;
   cover_image: string | null;
-  author_name: string | null;
   category: ArticleCategory | null;
   tags_list: string[];
   published_at: string | null;

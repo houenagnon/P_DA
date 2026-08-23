@@ -7,7 +7,7 @@ import { eventsService } from "@/services/events.service";
 import { formatDateTime, eventTypeLabel, toDatetimeLocalValue } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Plus, CalendarDays, Edit2, Trash2, Users, Eye, EyeOff, X, Download } from "lucide-react";
-import { isAdmin, isBureau } from "@/types/auth.types";
+import { isBureau } from "@/types/auth.types";
 import Link from "next/link";
 import type { Event, EventDetail, EventWritePayload, EventType } from "@/types/events.types";
 
@@ -41,7 +41,7 @@ export default function EventsManagePage() {
   const [editingEvent, setEditingEvent] = useState<EventDetail | null>(null);
   const [form, setForm] = useState<EventWritePayload>(emptyForm);
 
-  const canManage = user && (isAdmin(user.role) || isBureau(user.role));
+  const canManage = isBureau(user);
 
   const { data, isLoading } = useQuery({
     queryKey: ["events", "manage"],
@@ -205,13 +205,13 @@ function EventRow({ event, canManage, onTogglePublish, onDelete, onEdit }: {
         </div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <Link href={`/manage/events/${event.id}/participants`} title="Participants" className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50">
-          <Users size={16} />
-        </Link>
-        <button onClick={handleExport} title="Exporter Excel" className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50">
-          <Download size={16} />
-        </button>
         {canManage && <>
+          <Link href={`/manage/events/${event.id}/participants`} title="Participants" className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50">
+            <Users size={16} />
+          </Link>
+          <button onClick={handleExport} title="Exporter Excel" className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50">
+            <Download size={16} />
+          </button>
           <button onClick={onTogglePublish} title={event.is_published ? "Dépublier" : "Publier"} className="p-2 text-gray-400 hover:text-brand-blue rounded-lg hover:bg-gray-50">
             {event.is_published ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>

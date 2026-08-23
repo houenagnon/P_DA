@@ -3,7 +3,7 @@
 import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { membersService } from "@/services/members.service";
-import { avatarUrl, formatDate, roleLabel } from "@/lib/utils";
+import { avatarUrl, formatDate, positionLabel } from "@/lib/utils";
 import { ExternalLink, MapPin, Award, Briefcase, Calendar, Building2 } from "lucide-react";
 import Link from "next/link";
 import type { MemberExperience, MemberCertification } from "@/types/members.types";
@@ -36,7 +36,7 @@ export default function MemberProfilePage({ params }: { params: Promise<{ slug: 
                 className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl border-4 border-white/20 object-cover shadow-2xl"
               />
               <div className="absolute -bottom-2 -right-2 bg-brand-orange text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">
-                {roleLabel(profile.role)}
+                {positionLabel(profile)}
               </div>
             </div>
 
