@@ -9,6 +9,7 @@ export interface Project {
   owner_id: number | null;
   owner_name: string | null;
   member_names: string[];
+  department_id: number | null;
   department_name: string | null;
   deadline: string | null;
   repository_url: string;
@@ -23,4 +24,25 @@ export interface ProjectWritePayload {
   deadline?: string | null;
   repository_url?: string;
   members?: number[];
+}
+
+export interface ProjectTask {
+  id: number;
+  project: number;
+  project_title: string;
+  title: string;
+  description: string;
+  assigned_to: number | null;
+  assigned_to_name: string | null;
+  due_date: string | null;
+  is_done: boolean;
+  created_at: string;
+}
+
+export interface ProjectTaskWritePayload {
+  title: string;
+  description?: string;
+  assigned_to?: number | null;
+  due_date?: string | null;
+  is_done?: boolean;
 }
