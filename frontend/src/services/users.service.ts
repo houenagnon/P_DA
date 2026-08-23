@@ -28,7 +28,12 @@ export interface AdminUserUpdatePayload {
   is_active?: boolean;
 }
 
+interface PaginatedResponse<T> { count: number; results: T[]; next: string | null; previous: string | null; }
+
 export const usersService = {
+  list: (params?: Record<string, string>) =>
+    api.get<AdminUser[] | PaginatedResponse<AdminUser>>("/auth/users/", { params }),
+
   update: (id: number, data: AdminUserUpdatePayload) =>
     api.patch<AdminUser>(`/auth/users/${id}/`, data),
 

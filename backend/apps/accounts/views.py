@@ -184,6 +184,15 @@ class UserAdminViewSet(viewsets.ModelViewSet):
             raise ValidationError("Vous ne pouvez pas supprimer votre propre compte.")
         instance.delete()
 
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        new_role = serializer.validated_data.get("role", instance.role)
+        if instance.role == "admin" and new_role != "admin":
+            other_admins = User.objects.filter(role="admin").exclude(pk=instance.pk)
+            if not other_admins.exists():
+                raise ValidationError("Impossible de retirer le dernier administrateur du système.")
+        serializer.save()
+
 
 class DeleteAccountView(APIView):
     permission_classes = [IsAuthenticated]
