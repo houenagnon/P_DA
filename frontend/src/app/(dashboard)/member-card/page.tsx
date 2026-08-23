@@ -118,7 +118,7 @@ function MemberCard({ fullName, avatar, role, email, memberNumber, memberSince, 
   publicUrl: string | null; absolutePublicUrl: string | null;
 }) {
   return (
-    <div id="member-card" className="w-[420px] select-none">
+    <div id="member-card" className="w-full max-w-[420px] select-none">
       {/* Front */}
       <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-brand-navy via-[#08082b] to-[#0c1a4a] text-white"
         style={{ aspectRatio: "1.586/1" }}>
@@ -228,7 +228,7 @@ function CardSkeleton() {
     <div className="space-y-6">
       <div className="h-8 w-48 bg-gray-200 rounded-xl animate-pulse" />
       <div className="flex justify-center">
-        <div className="w-[420px] rounded-3xl bg-gray-200 animate-pulse" style={{ aspectRatio: "1.586/1" }} />
+        <div className="w-full max-w-[420px] rounded-3xl bg-gray-200 animate-pulse" style={{ aspectRatio: "1.586/1" }} />
       </div>
     </div>
   );

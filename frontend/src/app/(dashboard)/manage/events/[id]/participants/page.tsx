@@ -44,8 +44,8 @@ export default function EventParticipantsPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="min-w-0">
           <Link href="/manage/events" className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-brand-blue mb-2 transition-colors">
             <ArrowLeft size={14} /> Retour aux événements
           </Link>
@@ -54,7 +54,7 @@ export default function EventParticipantsPage({ params }: { params: Promise<{ id
         </div>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
         >
           <Download size={15} /> Exporter Excel
         </button>

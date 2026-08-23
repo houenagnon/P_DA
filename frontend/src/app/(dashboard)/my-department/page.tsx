@@ -52,10 +52,10 @@ export default function MyDepartmentPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-brand-navy flex items-center gap-2">
-            <Building2 size={22} className="text-brand-blue" /> {department.name}
+            <Building2 size={22} className="text-brand-blue shrink-0" /> {department.name}
           </h1>
           {department.description && <p className="text-gray-500 text-sm mt-1">{department.description}</p>}
           {since && <p className="text-xs text-gray-400 mt-1">Membre depuis le {formatDate(since)}</p>}

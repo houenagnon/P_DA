@@ -88,7 +88,7 @@ export default function CandidaturesPage() {
       <h1 className="text-2xl font-bold text-brand-navy">Candidatures</h1>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-gray-100">
             <Clock size={16} className="text-gray-500" />

@@ -86,13 +86,13 @@ export default function DepartmentsManagePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-brand-navy">Départements</h1>
           <p className="text-gray-500 text-sm mt-1">{departments.length} département{departments.length > 1 ? "s" : ""}</p>
         </div>
         {canManage && (
-          <button onClick={openCreateForm} className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+          <button onClick={openCreateForm} className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shrink-0">
             <Plus size={16} /> Créer un département
           </button>
         )}
