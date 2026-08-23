@@ -47,6 +47,49 @@ function SortToggle({ dir, onToggle }: { dir: SortDir; onToggle: () => void }) {
   );
 }
 
+interface DateRange { from: string; to: string; }
+const EMPTY_RANGE: DateRange = { from: "", to: "" };
+
+/** Ne garde que les tâches dont l'échéance tombe dans la période — tant que la
+ * période est vide, aucun filtre n'est appliqué (les tâches sans échéance restent
+ * visibles ; dès qu'une borne est posée, elles sortent de la liste). */
+function filterByDateRange(tasks: ProjectTask[], range: DateRange): ProjectTask[] {
+  if (!range.from && !range.to) return tasks;
+  return tasks.filter((t) => {
+    if (!t.due_date) return false;
+    if (range.from && t.due_date < range.from) return false;
+    if (range.to && t.due_date > range.to) return false;
+    return true;
+  });
+}
+
+function DateRangeFilter({ range, onChange }: { range: DateRange; onChange: (range: DateRange) => void }) {
+  const active = !!range.from || !!range.to;
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <label className="text-xs text-gray-400">Du</label>
+      <input
+        type="date"
+        value={range.from}
+        onChange={(e) => onChange({ ...range, from: e.target.value })}
+        className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+      />
+      <label className="text-xs text-gray-400">au</label>
+      <input
+        type="date"
+        value={range.to}
+        onChange={(e) => onChange({ ...range, to: e.target.value })}
+        className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+      />
+      {active && (
+        <button onClick={() => onChange(EMPTY_RANGE)} className="text-xs text-gray-400 hover:text-brand-blue underline">
+          Réinitialiser
+        </button>
+      )}
+    </div>
+  );
+}
+
 const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
   { value: "idea", label: "Idée" },
   { value: "active", label: "En cours" },
@@ -81,6 +124,7 @@ export default function DepartmentWorkspacePage({ params }: { params: Promise<{ 
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [myTasksSort, setMyTasksSort] = useState<SortDir>("asc");
+  const [myTasksRange, setMyTasksRange] = useState<DateRange>(EMPTY_RANGE);
 
   const { data: department, isLoading } = useQuery({
     queryKey: ["department", departmentId],
@@ -348,16 +392,22 @@ export default function DepartmentWorkspacePage({ params }: { params: Promise<{ 
 
       {viewerMode === "membre" && myTasks && myTasks.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-2 gap-3">
+          <div className="flex flex-wrap items-center justify-between mb-2 gap-3">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1.5">
-              <ListChecks size={13} /> Mes tâches · {myTasks.length}
+              <ListChecks size={13} /> Mes tâches · {filterByDateRange(myTasks, myTasksRange).length}
             </h2>
-            <SortToggle dir={myTasksSort} onToggle={() => setMyTasksSort((d) => (d === "asc" ? "desc" : "asc"))} />
+            <div className="flex flex-wrap items-center gap-3">
+              <DateRangeFilter range={myTasksRange} onChange={setMyTasksRange} />
+              <SortToggle dir={myTasksSort} onToggle={() => setMyTasksSort((d) => (d === "asc" ? "desc" : "asc"))} />
+            </div>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-            {sortByDueDate(myTasks, myTasksSort).map((t) => (
+            {sortByDueDate(filterByDateRange(myTasks, myTasksRange), myTasksSort).map((t) => (
               <MyTaskRow key={t.id} task={t} />
             ))}
+            {filterByDateRange(myTasks, myTasksRange).length === 0 && (
+              <div className="py-8 text-center text-gray-400 text-sm">Aucune tâche sur cette période</div>
+            )}
           </div>
         </section>
       )}
@@ -419,6 +469,7 @@ function ProjectDetailPanel({
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [expandedDesc, setExpandedDesc] = useState<Set<number>>(new Set());
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [dateRange, setDateRange] = useState<DateRange>(EMPTY_RANGE);
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["project", project.id, "tasks"],
@@ -479,12 +530,18 @@ function ProjectDetailPanel({
         <div className="py-8 text-center text-gray-400 text-sm">Aucune tâche pour l&apos;instant</div>
       ) : (
         <>
-          <div className="px-5 py-2.5 border-b border-gray-50 flex items-center justify-between gap-3">
-            <span className="text-xs text-gray-400">{tasks.length} tâche{tasks.length > 1 ? "s" : ""}</span>
-            <SortToggle dir={sortDir} onToggle={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))} />
+          <div className="px-5 py-2.5 border-b border-gray-50 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs text-gray-400">{filterByDateRange(tasks, dateRange).length} tâche{filterByDateRange(tasks, dateRange).length > 1 ? "s" : ""}</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <DateRangeFilter range={dateRange} onChange={setDateRange} />
+              <SortToggle dir={sortDir} onToggle={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))} />
+            </div>
           </div>
+          {filterByDateRange(tasks, dateRange).length === 0 && (
+            <div className="py-8 text-center text-gray-400 text-sm">Aucune tâche sur cette période</div>
+          )}
           <div className="divide-y divide-gray-50">
-          {sortByDueDate(tasks, sortDir).map((t) => {
+          {sortByDueDate(filterByDateRange(tasks, dateRange), sortDir).map((t) => {
             const canSetAnyStatus = canManageProject;
             const canSetOwnStatus = t.assigned_to === currentUserId;
             const isExpanded = expandedDesc.has(t.id);
