@@ -73,7 +73,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
           })}
         </nav>
         <div className="border-t border-white/10 p-3 space-y-1">
-          <Link href="/" title={collapsed ? "Site public" : undefined} onClick={onMobileClose} className={`flex items-center gap-3 ${collapsed ? "md:justify-center" : "px-3"} px-3 py-2.5 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition-colors`}>
+          <Link href="/" target="_blank" rel="noopener noreferrer" title={collapsed ? "Site public" : undefined} onClick={onMobileClose} className={`flex items-center gap-3 ${collapsed ? "md:justify-center" : "px-3"} px-3 py-2.5 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition-colors`}>
             <Home size={16} className="shrink-0" /><span className={collapsed ? "md:hidden" : ""}>Site public</span>
           </Link>
           <Link href="/profile" title={collapsed ? "Mon profil" : undefined} onClick={onMobileClose} className={`flex items-center gap-3 ${collapsed ? "md:justify-center" : "px-3"} px-3 py-2.5 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition-colors`}>

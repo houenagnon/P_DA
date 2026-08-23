@@ -171,6 +171,8 @@ export default function MembersPage() {
 
                 <Link
                   href={`/members/${member.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-1 w-full py-2 text-xs text-brand-blue border border-brand-blue/20 rounded-xl hover:bg-brand-blue hover:text-white transition-colors font-medium"
                 >
                   Voir le profil <ExternalLink size={12} />

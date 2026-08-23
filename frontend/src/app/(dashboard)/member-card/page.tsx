@@ -100,7 +100,7 @@ export default function MemberCardPage() {
         {/* Mobile actions */}
         <div className="flex gap-3 justify-center no-print md:hidden">
           {publicUrl && (
-            <Link href={publicUrl} className="flex-1 flex items-center justify-center gap-2 py-3 text-sm border border-gray-200 rounded-xl text-gray-600">
+            <Link href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3 text-sm border border-gray-200 rounded-xl text-gray-600">
               <ExternalLink size={15} /> Portfolio
             </Link>
           )}

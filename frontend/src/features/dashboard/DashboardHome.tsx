@@ -73,7 +73,7 @@ export function DashboardHome() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/events" className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
+        <Link href="/events" target="_blank" rel="noopener noreferrer" className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
           <div className="p-2.5 rounded-xl bg-brand-blue/10 text-brand-blue group-hover:bg-brand-blue group-hover:text-white transition-colors">
             <CalendarDays size={20} />
           </div>
@@ -84,7 +84,7 @@ export function DashboardHome() {
         </Link>
 
         {(isAdminUser || isBureauUser) && (
-          <Link href="/members" className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
+          <Link href="/members" target="_blank" rel="noopener noreferrer" className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
             <div className="p-2.5 rounded-xl bg-brand-orange/10 text-brand-orange group-hover:bg-brand-orange group-hover:text-white transition-colors">
               <Users size={20} />
             </div>
@@ -123,7 +123,7 @@ export function DashboardHome() {
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-brand-navy">Prochains événements</h2>
-            <Link href="/events" className="text-xs text-brand-blue hover:underline flex items-center gap-1">
+            <Link href="/events" target="_blank" rel="noopener noreferrer" className="text-xs text-brand-blue hover:underline flex items-center gap-1">
               Voir tout <ArrowRight size={12} />
             </Link>
           </div>
@@ -135,6 +135,8 @@ export function DashboardHome() {
                 <Link
                   key={event.id}
                   href={`/events/${event.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group"
                 >
                   <div className="w-10 h-10 rounded-xl bg-brand-navy flex items-center justify-center text-white shrink-0">
