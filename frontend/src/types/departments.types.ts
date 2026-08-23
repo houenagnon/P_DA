@@ -24,3 +24,25 @@ export interface Department {
 export interface DepartmentDetail extends Department {
   memberships: DepartmentMembership[];
 }
+
+export interface DepartmentWritePayload {
+  name: string;
+  description: string;
+  lead?: number | null;
+  co_lead?: number | null;
+}
+
+export interface AddMembershipPayload {
+  user_id: number;
+  start_date: string;
+  end_date?: string;
+}
+
+/** Réponse de GET /departments/mine/ — le backend renvoie aussi announcements/
+ * sessions/my_tasks (ancien système de to-do département, remplacé par les
+ * tâches de projet), volontairement omis ici car plus affichés côté UI. */
+export interface MyDepartment {
+  department: Department;
+  since: string | null;
+  can_manage: boolean;
+}
