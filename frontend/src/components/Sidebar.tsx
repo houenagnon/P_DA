@@ -9,7 +9,7 @@ import { isAdmin, isBureau } from "@/types/auth.types";
 
 const allNavItems = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard, roles: "all" },
-  { href: "/manage/events", label: "Événements", icon: CalendarDays, roles: "all" },
+  { href: "/manage/events", label: "Événements", icon: CalendarDays, roles: "bureau" },
   { href: "/manage/members", label: "Membres", icon: Users, roles: "bureau" },
   { href: "/manage/departments", label: "Départements", icon: Building2, roles: "all" },
   { href: "/manage/actualites", label: "Actualités", icon: Newspaper, roles: "bureau" },
