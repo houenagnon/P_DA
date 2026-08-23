@@ -30,14 +30,15 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class ProjectWriteSerializer(serializers.ModelSerializer):
     """Création/édition — le propriétaire est fixé par la vue (request.user à la
-    création), jamais transmis par le client. Un projet rattaché à un département
-    ne peut être créé/déplacé que par le responsable/adjoint de ce département,
-    ou le bureau/admin ; sans département, seul le bureau/admin peut créer."""
+    création), jamais transmis par le client. Un projet est toujours rattaché à un
+    département, et ne peut être créé/déplacé que par le responsable/adjoint de ce
+    département, ou le bureau/admin."""
     members = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True, required=False)
 
     class Meta:
         model = Project
         fields = ["title", "description", "status", "department", "deadline", "repository_url", "members"]
+        extra_kwargs = {"department": {"required": True, "allow_null": False}}
 
     def validate(self, attrs):
         is_create = self.instance is None
@@ -47,12 +48,7 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
         department = attrs.get("department")
         user = self.context["request"].user
 
-        if department is None:
-            if not is_bureau(user):
-                raise serializers.ValidationError({
-                    "department": "Seuls le bureau ou l'admin peuvent créer un projet sans département.",
-                })
-        elif not (is_bureau(user) or user.id in (department.lead_id, department.co_lead_id)):
+        if not (is_bureau(user) or user.id in (department.lead_id, department.co_lead_id)):
             raise serializers.ValidationError({
                 "department": "Vous devez être responsable ou adjoint de ce département pour y créer un projet.",
             })
@@ -63,12 +59,13 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
 class ProjectTaskSerializer(serializers.ModelSerializer):
     assigned_to_name = serializers.CharField(source="assigned_to.full_name", read_only=True, default=None)
     project_title = serializers.CharField(source="project.title", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
         model = ProjectTask
         fields = [
             "id", "project", "project_title", "title", "description",
-            "assigned_to", "assigned_to_name", "due_date", "is_done", "created_at",
+            "assigned_to", "assigned_to_name", "due_date", "status", "status_display", "created_at",
         ]
         read_only_fields = ["id", "project", "project_title", "created_at"]
 
@@ -76,7 +73,7 @@ class ProjectTaskSerializer(serializers.ModelSerializer):
 class ProjectTaskWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectTask
-        fields = ["title", "description", "assigned_to", "due_date", "is_done"]
+        fields = ["title", "description", "assigned_to", "due_date", "status"]
 
     def validate_assigned_to(self, value):
         if value is None:
@@ -93,4 +90,4 @@ class ProjectTaskWriteSerializer(serializers.ModelSerializer):
 
 
 class ProjectTaskStatusUpdateSerializer(serializers.Serializer):
-    is_done = serializers.BooleanField()
+    status = serializers.ChoiceField(choices=ProjectTask.STATUS_CHOICES)

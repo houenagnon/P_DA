@@ -20,6 +20,13 @@ class ProjectViewSet(ModelViewSet):
     propriétaire, à l'admin ou au bureau."""
     queryset = Project.objects.select_related("owner", "department").prefetch_related("members")
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        department_id = self.request.query_params.get("department")
+        if department_id:
+            qs = qs.filter(department_id=department_id)
+        return qs
+
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update"]:
             return ProjectWriteSerializer
@@ -43,7 +50,7 @@ class ProjectViewSet(ModelViewSet):
             ProjectTask.objects
             .filter(assigned_to=request.user)
             .select_related("project", "assigned_to")
-            .order_by("is_done", "due_date")
+            .order_by("due_date")
         )
         return Response(ProjectTaskSerializer(queryset, many=True).data)
 
@@ -53,7 +60,7 @@ class ProjectViewSet(ModelViewSet):
         project = self.get_object()
 
         if request.method == "GET":
-            queryset = project.tasks.select_related("assigned_to").order_by("is_done", "due_date")
+            queryset = project.tasks.select_related("assigned_to").order_by("due_date")
             return Response(ProjectTaskSerializer(queryset, many=True).data)
 
         if not self._can_manage_project(project):
@@ -86,8 +93,8 @@ class ProjectViewSet(ModelViewSet):
         elif task.assigned_to_id == request.user.id:
             serializer = ProjectTaskStatusUpdateSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            task.is_done = serializer.validated_data["is_done"]
-            task.save(update_fields=["is_done"])
+            task.status = serializer.validated_data["status"]
+            task.save(update_fields=["status"])
         else:
             raise PermissionDenied("Vous ne pouvez modifier que vos propres tâches.")
 

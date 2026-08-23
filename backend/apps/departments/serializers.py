@@ -44,13 +44,14 @@ class DepartmentListSerializer(serializers.ModelSerializer):
     co_lead_name = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
+    is_member = serializers.SerializerMethodField()
 
     class Meta:
         model = Department
         fields = [
             "id", "name", "description",
             "lead_id", "lead_name", "co_lead_id", "co_lead_name",
-            "member_count", "can_manage", "created_at",
+            "member_count", "can_manage", "is_member", "created_at",
         ]
 
     def get_lead_id(self, obj) -> int | None:
@@ -76,6 +77,13 @@ class DepartmentListSerializer(serializers.ModelSerializer):
             return False
         from .services import can_manage_department
         return can_manage_department(request.user, obj)
+
+    def get_is_member(self, obj) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        from .services import is_current_department_member
+        return is_current_department_member(request.user, obj)
 
 
 class DepartmentDetailSerializer(DepartmentListSerializer):

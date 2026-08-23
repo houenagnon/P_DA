@@ -29,12 +29,19 @@ class Project(TimestampMixin):
 
 
 class ProjectTask(TimestampMixin):
+    STATUS_CHOICES = [
+        ("todo", "À faire"),
+        ("in_progress", "En cours"),
+        ("done", "Terminée"),
+        ("blocked", "Bloquée"),
+    ]
+
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     due_date = models.DateField(null=True, blank=True)
-    is_done = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="todo")
 
     class Meta:
         ordering = ["due_date", "created_at"]

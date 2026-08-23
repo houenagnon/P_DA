@@ -11,6 +11,6 @@ class ProjectAdmin(admin.ModelAdmin):
 
 @admin.register(ProjectTask)
 class ProjectTaskAdmin(admin.ModelAdmin):
-    list_display = ["title", "project", "assigned_to", "due_date", "is_done"]
-    list_filter = ["is_done"]
+    list_display = ["title", "project", "assigned_to", "due_date", "status"]
+    list_filter = ["status"]
     search_fields = ["title"]
