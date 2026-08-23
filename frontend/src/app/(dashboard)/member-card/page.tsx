@@ -53,9 +53,9 @@ export default function MemberCardPage() {
       `}</style>
 
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold text-brand-navy">Ma carte de membre</h1>
-          <div className="flex gap-2 no-print">
+          <div className="hidden md:flex gap-2 no-print shrink-0">
             {publicUrl && (
               <Link href={publicUrl} target="_blank"
                 className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">

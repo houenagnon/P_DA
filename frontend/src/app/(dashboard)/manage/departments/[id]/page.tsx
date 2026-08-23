@@ -97,12 +97,12 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      <div className="flex bg-gray-100 rounded-lg p-1 gap-1 w-fit">
+      <div className="flex bg-gray-100 rounded-lg p-1 gap-1 max-w-full overflow-x-auto">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === t.key ? "bg-white text-brand-navy shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors shrink-0 ${tab === t.key ? "bg-white text-brand-navy shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
           >
             {t.label}
           </button>
