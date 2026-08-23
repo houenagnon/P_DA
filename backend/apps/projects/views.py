@@ -1,13 +1,22 @@
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from apps.common.permissions import IsOwnerOrAdmin
-from .models import Project
-from .serializers import ProjectSerializer, ProjectWriteSerializer
+
+from apps.common.permissions import IsOwnerOrAdmin, is_bureau
+from .models import Project, ProjectTask
+from .serializers import (
+    ProjectSerializer, ProjectWriteSerializer,
+    ProjectTaskSerializer, ProjectTaskWriteSerializer, ProjectTaskStatusUpdateSerializer,
+)
 
 
 class ProjectViewSet(ModelViewSet):
-    """Projets communautaires — lecture ouverte à tout membre connecté ; création
-    libre (le créateur devient propriétaire) ; édition/suppression réservées au
+    """Projets communautaires — lecture ouverte à tout membre connecté. Création
+    réservée par ProjectWriteSerializer.validate() (responsable/adjoint du
+    département visé, ou bureau/admin) ; édition/suppression réservées au
     propriétaire, à l'admin ou au bureau."""
     queryset = Project.objects.select_related("owner", "department").prefetch_related("members")
 
@@ -23,3 +32,63 @@ class ProjectViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def _can_manage_project(self, project) -> bool:
+        return is_bureau(self.request.user) or project.owner_id == self.request.user.id
+
+    # ── Mes tâches (tous projets confondus) ───────────────────────────
+    @action(detail=False, methods=["get"], url_path="my-tasks")
+    def my_tasks(self, request):
+        queryset = (
+            ProjectTask.objects
+            .filter(assigned_to=request.user)
+            .select_related("project", "assigned_to")
+            .order_by("is_done", "due_date")
+        )
+        return Response(ProjectTaskSerializer(queryset, many=True).data)
+
+    # ── Tâches d'un projet ─────────────────────────────────────────────
+    @action(detail=True, methods=["get", "post"], url_path="tasks")
+    def tasks(self, request, pk=None):
+        project = self.get_object()
+
+        if request.method == "GET":
+            queryset = project.tasks.select_related("assigned_to").order_by("is_done", "due_date")
+            return Response(ProjectTaskSerializer(queryset, many=True).data)
+
+        if not self._can_manage_project(project):
+            raise PermissionDenied("Vous ne gérez pas ce projet.")
+        serializer = ProjectTaskWriteSerializer(data=request.data, context={"request": request, "project": project})
+        serializer.is_valid(raise_exception=True)
+        task = serializer.save(project=project)
+        return Response(ProjectTaskSerializer(task).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["patch", "delete"], url_path="tasks/(?P<task_id>[^/.]+)")
+    def task_detail(self, request, pk=None, task_id=None):
+        project = self.get_object()
+        try:
+            task = project.tasks.get(pk=task_id)
+        except ProjectTask.DoesNotExist:
+            return Response({"detail": "Tâche introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.method == "DELETE":
+            if not self._can_manage_project(project):
+                raise PermissionDenied("Vous ne gérez pas ce projet.")
+            task.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        if self._can_manage_project(project):
+            serializer = ProjectTaskWriteSerializer(
+                task, data=request.data, partial=True, context={"request": request, "project": project},
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        elif task.assigned_to_id == request.user.id:
+            serializer = ProjectTaskStatusUpdateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            task.is_done = serializer.validated_data["is_done"]
+            task.save(update_fields=["is_done"])
+        else:
+            raise PermissionDenied("Vous ne pouvez modifier que vos propres tâches.")
+
+        return Response(ProjectTaskSerializer(task).data)

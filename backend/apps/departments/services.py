@@ -33,6 +33,21 @@ def is_current_department_member(user, department) -> bool:
     ).exists()
 
 
+def get_department_member_ids(department) -> set:
+    """Lead, co-lead et adhérents actuels d'un département — utilisé pour
+    restreindre à qui un responsable peut assigner une tâche de projet."""
+    if department is None:
+        return set()
+    today = timezone.now().date()
+    ids = set(
+        department.memberships.filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=today)
+        ).values_list("user_id", flat=True)
+    )
+    ids.update(uid for uid in (department.lead_id, department.co_lead_id) if uid)
+    return ids
+
+
 def get_current_membership(user):
     from .models import DepartmentMembership
 
