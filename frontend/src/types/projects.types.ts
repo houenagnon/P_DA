@@ -20,11 +20,13 @@ export interface ProjectWritePayload {
   title: string;
   description: string;
   status: ProjectStatus;
-  department?: number | null;
+  department: number;
   deadline?: string | null;
   repository_url?: string;
   members?: number[];
 }
+
+export type ProjectTaskStatus = "todo" | "in_progress" | "done" | "blocked";
 
 export interface ProjectTask {
   id: number;
@@ -35,7 +37,8 @@ export interface ProjectTask {
   assigned_to: number | null;
   assigned_to_name: string | null;
   due_date: string | null;
-  is_done: boolean;
+  status: ProjectTaskStatus;
+  status_display: string;
   created_at: string;
 }
 
@@ -44,5 +47,5 @@ export interface ProjectTaskWritePayload {
   description?: string;
   assigned_to?: number | null;
   due_date?: string | null;
-  is_done?: boolean;
+  status?: ProjectTaskStatus;
 }

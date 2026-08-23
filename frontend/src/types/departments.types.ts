@@ -18,6 +18,7 @@ export interface Department {
   co_lead_name: string | null;
   member_count: number;
   can_manage: boolean;
+  is_member: boolean;
   created_at: string;
 }
 

@@ -1,10 +1,13 @@
 import { api } from "@/lib/axios";
-import type { Project, ProjectWritePayload, ProjectTask, ProjectTaskWritePayload } from "@/types/projects.types";
+import type { Project, ProjectWritePayload, ProjectTask, ProjectTaskWritePayload, ProjectTaskStatus } from "@/types/projects.types";
 
 interface PaginatedResponse<T> { count: number; results: T[]; next: string | null; previous: string | null; }
 
 export const projectsService = {
-  list: () => api.get<Project[] | PaginatedResponse<Project>>("/projects/"),
+  list: (departmentId?: number) =>
+    api.get<Project[] | PaginatedResponse<Project>>("/projects/", {
+      params: departmentId ? { department: departmentId } : undefined,
+    }),
 
   get: (id: number | string) => api.get<Project>(`/projects/${id}/`),
 
@@ -25,8 +28,8 @@ export const projectsService = {
     update: (projectId: number, taskId: number, data: Partial<ProjectTaskWritePayload>) =>
       api.patch<ProjectTask>(`/projects/${projectId}/tasks/${taskId}/`, data),
 
-    updateStatus: (projectId: number, taskId: number, isDone: boolean) =>
-      api.patch<ProjectTask>(`/projects/${projectId}/tasks/${taskId}/`, { is_done: isDone }),
+    updateStatus: (projectId: number, taskId: number, taskStatus: ProjectTaskStatus) =>
+      api.patch<ProjectTask>(`/projects/${projectId}/tasks/${taskId}/`, { status: taskStatus }),
 
     delete: (projectId: number, taskId: number) => api.delete(`/projects/${projectId}/tasks/${taskId}/`),
   },

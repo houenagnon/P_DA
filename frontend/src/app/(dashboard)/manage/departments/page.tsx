@@ -205,7 +205,7 @@ export default function DepartmentsManagePage() {
                 href={`/manage/departments/${dept.id}`}
                 className="flex items-center justify-center gap-1.5 w-full py-2 text-xs text-brand-blue border border-brand-blue/20 rounded-xl hover:bg-brand-blue hover:text-white transition-colors font-medium"
               >
-                <Users size={13} /> {dept.member_count} membre{dept.member_count > 1 ? "s" : ""} — Gérer
+                <Users size={13} /> {dept.member_count} membre{dept.member_count > 1 ? "s" : ""} — {dept.can_manage ? "Gérer" : "Voir"}
               </Link>
             </div>
           ))}
