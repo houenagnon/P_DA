@@ -20,6 +20,7 @@ class Command(BaseCommand):
         self._create_profiles()
         self._create_memberships()
         self._create_departments()
+        self._create_projects()
         self._create_articles()
         self.stdout.write(self.style.SUCCESS("✅ Seed terminé avec succès!"))
 
@@ -616,6 +617,106 @@ class Command(BaseCommand):
                 start_date=today - timedelta(days=400),
                 defaults={"end_date": today - timedelta(days=45)},
             )
+
+    def _create_projects(self):
+        """Projets et tâches par département — démontre la fonctionnalité en
+        production (statuts variés, descriptions courtes et longues pour tester
+        le "Plus de détails", tâches assignées/non assignées)."""
+        self.stdout.write("  → Création des projets...")
+        from apps.departments.models import Department
+        from apps.projects.models import Project, ProjectTask
+
+        today = timezone.now().date()
+
+        def make_project(department_name, owner_key, pd):
+            department = Department.objects.filter(name=department_name).first()
+            owner = self.users.get(owner_key)
+            if not department or not owner:
+                return None
+            project, _ = Project.objects.get_or_create(
+                department=department, title=pd["title"],
+                defaults={
+                    "description": pd["description"], "owner": owner,
+                    "status": pd.get("status", "idea"), "deadline": pd.get("deadline"),
+                    "repository_url": pd.get("repository_url", ""),
+                },
+            )
+            for td in pd.get("tasks", []):
+                title = td.pop("title")
+                assigned = self.users.get(td.pop("assigned_key", None))
+                ProjectTask.objects.get_or_create(
+                    project=project, title=title,
+                    defaults={**td, "assigned_to": assigned},
+                )
+            return project
+
+        make_project("Data Engineering", "bob", dict(
+            title="Migration vers dbt",
+            description=(
+                "Migrer l'ensemble des transformations SQL du pipeline de facturation vers dbt, "
+                "pour bénéficier des tests automatisés, de la documentation générée et du lignage "
+                "des données. Objectif : réduire de moitié le temps de debug des pipelines cassés."
+            ),
+            status="active", deadline=today + timedelta(days=30),
+            repository_url="https://github.com/dataafriquehub/dbt-pipelines",
+            tasks=[
+                dict(title="Auditer les modèles SQL existants", assigned_key="felix",
+                     status="in_progress", due_date=today + timedelta(days=7),
+                     description=(
+                         "Repérer les requêtes dupliquées entre les tableaux de bord actuels et les "
+                         "scripts cron existants avant de les convertir en modèles dbt.\n\n"
+                         "Prioriser les modèles qui alimentent le reporting mensuel du bureau : ce sont "
+                         "ceux dont une régression aurait le plus d'impact visible.\n\n"
+                         "Livrable attendu : un tableau Notion listant chaque requête source, sa "
+                         "fréquence d'exécution et le modèle dbt cible proposé."
+                     )),
+                dict(title="Écrire les tests dbt pour le pipeline facturation", assigned_key="bob",
+                     status="todo", due_date=today + timedelta(days=20)),
+                dict(title="Documenter la nouvelle architecture", status="todo"),
+            ],
+        ))
+        make_project("Data Engineering", "felix", dict(
+            title="Dashboard de qualité des données",
+            description="Tableau de bord de suivi des anomalies de données (valeurs nulles, doublons, retards de fraîcheur) pour tous les pipelines actifs.",
+            status="idea",
+            tasks=[
+                dict(title="Définir les métriques de qualité à suivre", assigned_key="bob", status="todo"),
+            ],
+        ))
+
+        make_project("Machine Learning & MLOps", "claire", dict(
+            title="POC Feast feature store",
+            description="Valider Feast comme feature store interne pour standardiser l'accès aux features entre les projets de recommandation et de scoring.",
+            status="active", deadline=today + timedelta(days=25),
+            repository_url="https://github.com/dataafriquehub/feast-poc",
+            tasks=[
+                dict(title="Intégrer Feast avec le pipeline events", assigned_key="alice",
+                     status="in_progress", due_date=today + timedelta(days=12),
+                     description="Brancher Feast sur le topic Kafka des évènements d'inscription en lecture, avec un feature service dédié pour le modèle de scoring d'engagement."),
+                dict(title="Benchmark latence Feast vs solution actuelle", assigned_key="claire", status="todo"),
+            ],
+        ))
+        make_project("Machine Learning & MLOps", "claire", dict(
+            title="Guide de contribution MLOps",
+            description="Document de référence pour tout membre souhaitant déployer un modèle en production via le gabarit MLflow standard du hub.",
+            status="completed",
+            tasks=[
+                dict(title="Rédiger la section déploiement", assigned_key="claire", status="done"),
+                dict(title="Relecture par le bureau", status="done"),
+            ],
+        ))
+
+        make_project("Formation & Mentorat", "david", dict(
+            title="Refonte du programme d'onboarding mentorat",
+            description="Simplifier le parcours des 8 binômes mentor/mentoré actuels : moins de documents à remplir, un seul point d'étape mensuel au lieu de trois.",
+            status="active", deadline=today + timedelta(days=15),
+            tasks=[
+                dict(title="Préparer le support d'onboarding", assigned_key="emma",
+                     status="blocked", due_date=today + timedelta(days=5),
+                     description="Bloquée en attendant la validation du bureau sur le nouveau format (1 page au lieu de 5) — relance prévue au prochain point hebdo."),
+                dict(title="Recruter 3 nouveaux mentors", assigned_key="david", status="todo"),
+            ],
+        ))
 
     def _create_articles(self):
         self.stdout.write("  → Création des actualités...")
