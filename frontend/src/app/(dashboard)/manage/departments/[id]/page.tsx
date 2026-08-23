@@ -12,12 +12,39 @@ import { MemberSearchSelect } from "@/components/MemberSearchSelect";
 import { Badge } from "@/components/ui/Badge";
 import {
   ArrowLeft, Users, UserPlus, CircleX, Trash2, FolderKanban, Plus, X,
-  CalendarDays, GitBranch, ListChecks, Pencil, ChevronDown,
+  CalendarDays, GitBranch, ListChecks, Pencil, ChevronDown, ArrowUpDown,
 } from "lucide-react";
 import type { Project, ProjectStatus, ProjectTask, ProjectTaskStatus, ProjectWritePayload, ProjectTaskWritePayload } from "@/types/projects.types";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
+}
+
+type SortDir = "asc" | "desc";
+
+/** Trie par échéance — les tâches sans échéance restent toujours en fin de liste,
+ * quel que soit le sens du tri. */
+function sortByDueDate(tasks: ProjectTask[], dir: SortDir): ProjectTask[] {
+  return [...tasks].sort((a, b) => {
+    if (!a.due_date && !b.due_date) return 0;
+    if (!a.due_date) return 1;
+    if (!b.due_date) return -1;
+    const diff = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    return dir === "asc" ? diff : -diff;
+  });
+}
+
+function SortToggle({ dir, onToggle }: { dir: SortDir; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-brand-blue transition-colors shrink-0"
+      title="Changer le sens du tri"
+    >
+      <ArrowUpDown size={12} />
+      Échéance {dir === "asc" ? "la plus proche" : "la plus lointaine"} d&apos;abord
+    </button>
+  );
 }
 
 const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
@@ -53,6 +80,7 @@ export default function DepartmentWorkspacePage({ params }: { params: Promise<{ 
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [myTasksSort, setMyTasksSort] = useState<SortDir>("asc");
 
   const { data: department, isLoading } = useQuery({
     queryKey: ["department", departmentId],
@@ -320,11 +348,14 @@ export default function DepartmentWorkspacePage({ params }: { params: Promise<{ 
 
       {viewerMode === "membre" && myTasks && myTasks.length > 0 && (
         <section>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1.5">
-            <ListChecks size={13} /> Mes tâches · {myTasks.length}
-          </h2>
+          <div className="flex items-center justify-between mb-2 gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1.5">
+              <ListChecks size={13} /> Mes tâches · {myTasks.length}
+            </h2>
+            <SortToggle dir={myTasksSort} onToggle={() => setMyTasksSort((d) => (d === "asc" ? "desc" : "asc"))} />
+          </div>
           <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-            {myTasks.map((t) => (
+            {sortByDueDate(myTasks, myTasksSort).map((t) => (
               <MyTaskRow key={t.id} task={t} />
             ))}
           </div>
@@ -387,6 +418,7 @@ function ProjectDetailPanel({
   const qc = useQueryClient();
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [expandedDesc, setExpandedDesc] = useState<Set<number>>(new Set());
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["project", project.id, "tasks"],
@@ -446,8 +478,13 @@ function ProjectDetailPanel({
       {tasks.length === 0 ? (
         <div className="py-8 text-center text-gray-400 text-sm">Aucune tâche pour l&apos;instant</div>
       ) : (
-        <div className="divide-y divide-gray-50">
-          {tasks.map((t) => {
+        <>
+          <div className="px-5 py-2.5 border-b border-gray-50 flex items-center justify-between gap-3">
+            <span className="text-xs text-gray-400">{tasks.length} tâche{tasks.length > 1 ? "s" : ""}</span>
+            <SortToggle dir={sortDir} onToggle={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))} />
+          </div>
+          <div className="divide-y divide-gray-50">
+          {sortByDueDate(tasks, sortDir).map((t) => {
             const canSetAnyStatus = canManageProject;
             const canSetOwnStatus = t.assigned_to === currentUserId;
             const isExpanded = expandedDesc.has(t.id);
@@ -494,7 +531,8 @@ function ProjectDetailPanel({
               </div>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {canManageProject && (
