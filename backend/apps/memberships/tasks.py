@@ -15,8 +15,9 @@ def send_candidature_received_notification(self, candidature_pk: int):
     except Candidature.DoesNotExist:
         return
 
+    from django.db.models import Q
     recipients = list(
-        User.objects.filter(role__in=["admin", "president"], is_active=True)
+        User.objects.filter(Q(role="admin") | Q(poste="president"), is_active=True)
         .values_list("email", flat=True)
     )
     if not recipients:

@@ -8,27 +8,61 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
+    department = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "full_name",
-            "phone", "avatar", "role", "email_verified", "created_at",
+            "phone", "avatar", "role", "poste", "department", "email_verified", "created_at",
         ]
-        read_only_fields = ["id", "email", "role", "email_verified", "created_at"]
+        read_only_fields = ["id", "email", "role", "poste", "department", "email_verified", "created_at"]
+
+    def get_department(self, obj):
+        from apps.departments.services import get_department_dict
+        return get_department_dict(obj)
 
 
 class UserAdminSerializer(serializers.ModelSerializer):
-    """Édition d'un utilisateur par un administrateur — expose role/is_active/email."""
+    """Édition d'un utilisateur par un administrateur — expose role/poste/is_active/email.
+    `department_id` est un pass-through en écriture (pas un champ du modèle User) : le
+    département est une adhésion datée (DepartmentMembership), gérée via
+    apps.departments.services.add_member/end_membership dans .update()."""
     full_name = serializers.CharField(read_only=True)
+    department = serializers.SerializerMethodField()
+    department_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "full_name",
-            "phone", "role", "is_active", "email_verified", "created_at",
+            "phone", "role", "poste", "department", "department_id",
+            "is_active", "email_verified", "created_at",
         ]
         read_only_fields = ["id", "email_verified", "created_at"]
+
+    def get_department(self, obj):
+        from apps.departments.services import get_department_dict
+        return get_department_dict(obj)
+
+    def update(self, instance, validated_data):
+        department_id = validated_data.pop("department_id", serializers.empty)
+        user = super().update(instance, validated_data)
+
+        if department_id is not serializers.empty:
+            from django.utils import timezone
+            from apps.departments.models import Department
+            from apps.departments.services import get_current_membership, add_member, end_membership
+
+            current = get_current_membership(user)
+            if department_id is None:
+                if current:
+                    end_membership(current)
+            elif not current or current.department_id != department_id:
+                department = Department.objects.get(pk=department_id)
+                add_member(department, user, start_date=timezone.now().date())
+
+        return user
 
 
 class DAHTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -36,6 +70,7 @@ class DAHTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
         token["role"] = user.role
+        token["poste"] = user.poste
         token["email_verified"] = user.email_verified
         token["full_name"] = user.full_name
         return token

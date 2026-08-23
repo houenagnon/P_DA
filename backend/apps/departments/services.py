@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.common.background import fire_and_forget
-from apps.common.permissions import BUREAU_ROLES
+from apps.common.permissions import is_bureau
 
 FREQUENCY_DELTAS = {
     "weekly": timedelta(days=7),
@@ -21,7 +21,7 @@ def can_manage_department(user, department) -> bool:
     """Admin/Bureau gèrent tous les départements ; le lead/co-lead ne gère que
     le sien (membres, annonces, séances, tâches) — jamais son nom/description/
     lead/co-lead, réservés à Admin/Bureau (voir get_permissions de la vue)."""
-    if user.role == "admin" or user.role in BUREAU_ROLES:
+    if is_bureau(user):
         return True
     return department.lead_id == user.id or department.co_lead_id == user.id
 
@@ -47,6 +47,20 @@ def get_current_membership(user):
     )
 
 
+def get_department_dict(user):
+    """Représentation légère du département actif d'un utilisateur, réutilisée
+    par les serializers accounts/members pour éviter de dupliquer la requête."""
+    membership = get_current_membership(user)
+    if not membership:
+        return None
+    return {
+        "id": membership.department_id,
+        "name": membership.department.name,
+        "start_date": membership.start_date,
+        "end_date": membership.end_date,
+    }
+
+
 def get_my_department_context(user):
     """Le département à afficher sur « Mon département » : sa propre adhésion en
     cours si elle existe, sinon le département qu'il dirige (lead/co-lead) même
@@ -67,13 +81,13 @@ def get_my_department_context(user):
 
 def _sync_lead_roles(department) -> None:
     """Nommer quelqu'un lead/co-lead lui attribue automatiquement le rôle
-    responsable_departement. Le retirer ne fait pas revenir son rôle en arrière
+    responsable. Le retirer ne fait pas revenir son rôle en arrière
     (on ne sait pas quel était son rôle avant) — l'admin le change manuellement."""
     from apps.accounts.models import ROLES
 
     for user in filter(None, [department.lead, department.co_lead]):
-        if user.role != ROLES.RESPONSABLE_DEPARTEMENT:
-            user.role = ROLES.RESPONSABLE_DEPARTEMENT
+        if user.role != ROLES.RESPONSABLE and user.role != ROLES.ADMIN:
+            user.role = ROLES.RESPONSABLE
             user.save(update_fields=["role"])
 
 

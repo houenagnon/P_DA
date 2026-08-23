@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from apps.common.permissions import IsAdminOrBureau, BUREAU_ROLES
+from apps.common.permissions import IsAdminOrBureau, is_bureau
 from .models import Article, ArticleCategory, ArticleComment, ArticleLike
 from .serializers import (
     ArticleListSerializer, ArticleDetailSerializer, ArticleAdminSerializer, ArticleCategorySerializer,
@@ -102,7 +102,7 @@ class ArticleCommentDeleteView(generics.DestroyAPIView):
     def get_object(self):
         obj = get_object_or_404(self.get_queryset(), pk=self.kwargs["comment_id"])
         user = self.request.user
-        if not (user.id == obj.author_id or user.role == "admin" or user.role in BUREAU_ROLES):
+        if not (user.id == obj.author_id or user.role == "admin" or is_bureau(user)):
             raise PermissionDenied("Vous ne pouvez supprimer que votre propre commentaire.")
         return obj
 

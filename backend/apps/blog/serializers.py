@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.common.permissions import BUREAU_ROLES
+from apps.common.permissions import is_bureau
 from .models import Article, ArticleCategory, ArticleComment
 
 
@@ -10,7 +10,7 @@ class ArticleCategorySerializer(serializers.ModelSerializer):
 
 
 class ArticleListSerializer(serializers.ModelSerializer):
-    author_name = serializers.SerializerMethodField()
+    """Serializer public — pas d'auteur exposé (voir ArticleAdminSerializer pour la gestion)."""
     category = ArticleCategorySerializer(read_only=True)
     tags_list = serializers.SerializerMethodField()
     comments_count = serializers.IntegerField(source="comments.count", read_only=True)
@@ -21,12 +21,9 @@ class ArticleListSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             "id", "slug", "title", "excerpt", "cover_image",
-            "author_name", "category", "tags_list", "published_at",
+            "category", "tags_list", "published_at",
             "comments_count", "likes_count", "is_liked_by_me",
         ]
-
-    def get_author_name(self, obj):
-        return obj.author.full_name if obj.author else None
 
     def get_tags_list(self, obj):
         return [t.strip() for t in obj.tags.split(",") if t.strip()] if obj.tags else []
@@ -77,4 +74,4 @@ class ArticleCommentSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return False
         user = request.user
-        return user.id == obj.author_id or user.role == "admin" or user.role in BUREAU_ROLES
+        return user.id == obj.author_id or user.role == "admin" or is_bureau(user)

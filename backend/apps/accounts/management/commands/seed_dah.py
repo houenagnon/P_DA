@@ -31,19 +31,19 @@ class Command(BaseCommand):
             dict(email="admin@dah.com", first_name="Directeur", last_name="Admin",
                  role="admin", phone="+22961000001", is_staff=True, is_superuser=True),
             dict(email="president@dah.com", first_name="Kouamé", last_name="Assouman",
-                 role="president", phone="+22561000002"),
+                 role="membre", poste="president", phone="+22561000002"),
             dict(email="tresorier@dah.com", first_name="Fatou", last_name="Diallo",
-                 role="tresorier", phone="+22161000003"),
+                 role="membre", poste="tresorier", phone="+22161000003"),
             dict(email="sg@dah.com", first_name="Moussa", last_name="Konaté",
-                 role="secretaire_general", phone="+22361000004"),
+                 role="membre", poste="secretaire_general", phone="+22361000004"),
             dict(email="alice@dah.com", first_name="Alice", last_name="Mensah",
                  role="membre", phone="+22661000005"),
             dict(email="bob@dah.com", first_name="Robert", last_name="Ouedraogo",
                  role="membre", phone="+22761000006"),
             dict(email="claire@dah.com", first_name="Claire", last_name="Gbénou",
-                 role="formateur", phone="+22961000007"),
+                 role="membre", phone="+22961000007"),
             dict(email="david@dah.com", first_name="David", last_name="Ahiable",
-                 role="mentor", phone="+22961000008"),
+                 role="membre", phone="+22961000008"),
             dict(email="emma@dah.com", first_name="Emma", last_name="Toure",
                  role="candidat", phone="+22961000009"),
             dict(email="felix@dah.com", first_name="Félix", last_name="Bamba",
@@ -66,6 +66,12 @@ class Command(BaseCommand):
                 self.stdout.write(f"    + {email} ({d['role']})")
             self.users[d["role"]] = user
 
+        # Ré-indexés par email plutôt que par rôle : depuis la scission rôle/poste,
+        # plusieurs comptes (président, trésorier, sg...) partagent role="membre",
+        # donc la clé self.users[d["role"]] ci-dessus ne les distingue plus.
+        self.users["president"] = User.objects.get(email="president@dah.com")
+        self.users["tresorier"] = User.objects.get(email="tresorier@dah.com")
+        self.users["secretaire_general"] = User.objects.get(email="sg@dah.com")
         self.users["alice"] = User.objects.get(email="alice@dah.com")
         self.users["bob"] = User.objects.get(email="bob@dah.com")
         self.users["claire"] = User.objects.get(email="claire@dah.com")
@@ -551,8 +557,8 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f"    + Département : {department.name}")
                 for user in filter(None, [lead, co_lead]):
-                    if user.role != ROLES.RESPONSABLE_DEPARTEMENT:
-                        user.role = ROLES.RESPONSABLE_DEPARTEMENT
+                    if user.role not in ("responsable", "admin"):
+                        user.role = "responsable"
                         user.save(update_fields=["role"])
 
             for md in dd.get("members", []):

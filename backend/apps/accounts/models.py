@@ -4,7 +4,24 @@ from apps.common.mixins import TimestampMixin
 
 
 class ROLES:
+    """Rôle d'accès — gouverne les permissions."""
     ADMIN = "admin"
+    RESPONSABLE = "responsable"
+    MEMBRE = "membre"
+    CANDIDAT = "candidat"
+    VISITEUR = "visiteur"
+
+    CHOICES = [
+        (ADMIN, "Administrateur"),
+        (RESPONSABLE, "Responsable"),
+        (MEMBRE, "Membre"),
+        (CANDIDAT, "Candidat"),
+        (VISITEUR, "Visiteur"),
+    ]
+
+
+class POSTES:
+    """Poste au bureau — purement informatif, sans impact sur les permissions."""
     PRESIDENT = "president"
     VP1 = "vp1"
     VP2 = "vp2"
@@ -12,15 +29,8 @@ class ROLES:
     SECRETAIRE_GENERAL_ADJ = "secretaire_general_adj"
     TRESORIER = "tresorier"
     TRESORIER_ADJ = "tresorier_adj"
-    RESPONSABLE_DEPARTEMENT = "responsable_departement"
-    FORMATEUR = "formateur"
-    MENTOR = "mentor"
-    MEMBRE = "membre"
-    CANDIDAT = "candidat"
-    VISITEUR = "visiteur"
 
     CHOICES = [
-        (ADMIN, "Administrateur"),
         (PRESIDENT, "Président"),
         (VP1, "Vice-Président 1"),
         (VP2, "Vice-Président 2"),
@@ -28,12 +38,6 @@ class ROLES:
         (SECRETAIRE_GENERAL_ADJ, "Secrétaire Général Adjoint"),
         (TRESORIER, "Trésorier Général"),
         (TRESORIER_ADJ, "Trésorier Général Adjoint"),
-        (RESPONSABLE_DEPARTEMENT, "Responsable de Département"),
-        (FORMATEUR, "Formateur"),
-        (MENTOR, "Mentor"),
-        (MEMBRE, "Membre"),
-        (CANDIDAT, "Candidat"),
-        (VISITEUR, "Visiteur"),
     ]
 
 
@@ -67,6 +71,14 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
         default=ROLES.VISITEUR,
         verbose_name="Rôle",
     )
+    poste = models.CharField(
+        max_length=30,
+        choices=POSTES.CHOICES,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Poste au bureau",
+    )
     email_verified = models.BooleanField(default=False, verbose_name="Email vérifié")
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -90,8 +102,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
 
     @property
     def is_bureau(self):
-        from apps.common.permissions import BUREAU_ROLES
-        return self.role in BUREAU_ROLES
+        return self.poste is not None or self.role == ROLES.ADMIN
 
     @property
     def is_admin(self):

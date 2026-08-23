@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 from .models import (
@@ -88,6 +89,30 @@ class DepartmentWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
         fields = ["name", "description", "lead", "co_lead"]
+
+    def validate(self, attrs):
+        lead = attrs.get("lead", getattr(self.instance, "lead", None))
+        co_lead = attrs.get("co_lead", getattr(self.instance, "co_lead", None))
+
+        if lead and co_lead and lead.id == co_lead.id:
+            raise serializers.ValidationError(
+                "Le responsable et l'adjoint ne peuvent pas être la même personne."
+            )
+
+        other_departments = Department.objects.all()
+        if self.instance:
+            other_departments = other_departments.exclude(pk=self.instance.pk)
+
+        for person, label in ((lead, "responsable"), (co_lead, "adjoint")):
+            if person and other_departments.filter(
+                Q(lead=person) | Q(co_lead=person)
+            ).exists():
+                raise serializers.ValidationError(
+                    f"{person.full_name} est déjà responsable ou adjoint d'un autre "
+                    f"département — impossible de le désigner {label} ici aussi."
+                )
+
+        return attrs
 
 
 class DepartmentAnnouncementSerializer(serializers.ModelSerializer):

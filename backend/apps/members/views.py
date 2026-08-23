@@ -14,6 +14,23 @@ from .serializers import (
 )
 
 
+def _filter_by_department(queryset, department_id):
+    """Filtre un queryset de MemberProfile sur le département actif de l'utilisateur
+    (adhésion en cours) — le département n'étant pas un champ direct, on passe par
+    DepartmentMembership plutôt que filterset_fields."""
+    if not department_id:
+        return queryset
+    from django.db.models import Q
+    from django.utils import timezone
+    from apps.departments.models import DepartmentMembership
+
+    today = timezone.now().date()
+    user_ids = DepartmentMembership.objects.filter(
+        department_id=department_id,
+    ).filter(Q(end_date__isnull=True) | Q(end_date__gte=today)).values_list("user_id", flat=True)
+    return queryset.filter(user_id__in=user_ids)
+
+
 class MemberListView(generics.ListAPIView):
     """Liste des membres — admin et bureau uniquement."""
     serializer_class = MemberListSerializer
@@ -23,7 +40,8 @@ class MemberListView(generics.ListAPIView):
     filterset_fields = ["user__role"]
 
     def get_queryset(self):
-        return MemberProfile.objects.select_related("user").order_by("-created_at")
+        qs = MemberProfile.objects.select_related("user").order_by("-created_at")
+        return _filter_by_department(qs, self.request.query_params.get("department"))
 
 
 class MyProfileView(generics.RetrieveUpdateAPIView):
@@ -42,7 +60,7 @@ class PublicMemberListView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        return (
+        qs = (
             MemberProfile.objects
             .filter(is_public=True)
             .exclude(user__role__in=["visiteur", "admin"])
@@ -50,6 +68,7 @@ class PublicMemberListView(generics.ListAPIView):
             .prefetch_related("experiences")
             .order_by("user__first_name")
         )
+        return _filter_by_department(qs, self.request.query_params.get("department"))
 
 
 class PublicProfileView(generics.RetrieveAPIView):
